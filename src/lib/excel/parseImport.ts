@@ -33,7 +33,8 @@ export async function parseImport(file: File): Promise<ImportResult> {
     const label = labelRow.getCell(col).value as string | undefined;
     if (!label) continue;
     const type = /trening/i.test(label) ? 'training' : 'match';
-    events.push({ id: nanoid(), name: label, type, index: col });
+    const parsedDate = extractDate(label);
+    events.push({ id: nanoid(), name: label, type, index: col, date: parsedDate || undefined });
   }
 
   const players: Player[] = [];
@@ -116,4 +117,24 @@ export async function parseImport(file: File): Promise<ImportResult> {
 function num(v: any): number | undefined {
   const n = Number(v);
   return isNaN(n) ? undefined : n;
+}
+
+// Try to extract a date from the label (supports formats like DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD)
+function extractDate(label: string): string | null {
+  const patterns = [
+    /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/, // YYYY-MM-DD or YYYY/MM/DD
+    /(\d{1,2})[.](\d{1,2})[.](\d{2,4})/,   // DD.MM.YYYY
+    /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/     // DD/MM/YYYY
+  ];
+  for (const p of patterns) {
+    const m = label.match(p);
+    if (m) {
+      let year: number, month: number, day: number;
+      if (p === patterns[0]) { year = +m[1]; month = +m[2]; day = +m[3]; }
+      else { day = +m[1]; month = +m[2]; year = +m[3]; if (year < 100) year += 2000; }
+      const iso = new Date(Date.UTC(year, month - 1, day)).toISOString();
+      return iso;
+    }
+  }
+  return null;
 }

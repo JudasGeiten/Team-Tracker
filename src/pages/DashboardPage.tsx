@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Divider, Alert } from '@mui/material';
+import { useState, useMemo } from 'react';
+import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert } from '@mui/material';
 import { parseImport } from '../lib/excel/parseImport';
 import { usePlayersStore } from '../state/usePlayersStore';
-import AttendanceChart from '../components/stats/AttendanceChart';
 
 export default function DashboardPage() {
   const { players, events, attendance, importDebug, loadImport } = usePlayersStore();
@@ -24,7 +23,18 @@ export default function DashboardPage() {
     }
   }
 
-  const blankColors = importDebug?.blankColorSamples ? Object.entries(importDebug.blankColorSamples) : [];
+  const firstEventDate = useMemo(() => {
+    if (!events.length) return '';
+    const dated = events.filter(e => e.date).sort((a,b)=> (a.date! < b.date! ? -1 : 1));
+    if (!dated.length) return '';
+    return dated[0].date!.split('T')[0];
+  }, [events]);
+  const lastEventDate = useMemo(() => {
+    if (!events.length) return '';
+    const dated = events.filter(e => e.date).sort((a,b)=> (a.date! < b.date! ? -1 : 1));
+    if (!dated.length) return '';
+    return dated[dated.length-1].date!.split('T')[0];
+  }, [events]);
 
   return (
     <Stack spacing={3}>
@@ -42,37 +52,18 @@ export default function DashboardPage() {
         )}
       </Paper>
 
-      {blankColors.length > 0 && (
-        <Paper sx={{ p:2 }}>
-          <Typography variant="subtitle1">Blank cell color samples (for distinguishing invited absent vs not invited)</Typography>
-          <List dense>
-            {blankColors.map(([argb, count]) => (
-              <ListItem key={argb}>
-                <ListItemText primary={`${argb}`} secondary={`count: ${count}`} />
-                {argb !== 'NONE' && <Box sx={{ width:24, height:24, bgcolor: `#${argb.slice(-6)}`, border: '1px solid #ccc', ml:2 }} />}
-              </ListItem>
-            ))}
-          </List>
-          <Divider sx={{ my:2 }} />
-          <Typography variant="body2">Next: Tell us which ARGB corresponds to invited-but-absent (red). We will update parser to classify.</Typography>
-        </Paper>
-      )}
-
       {players.length > 0 && (
         <Paper sx={{ p:2 }}>
-          <Typography variant="h6">Quick Preview (first 5 players)</Typography>
+          <Typography variant="h6" gutterBottom>Import Summary</Typography>
           <List dense>
-            {players.slice(0,5).map(p => (
-              <ListItem key={p.id}>
-                <ListItemText primary={p.name} secondary={`Invited: ${p.invitedTotal ?? '-'} | Attended: ${p.attendedTotal ?? '-'}`} />
-              </ListItem>
-            ))}
+            <ListItem><ListItemText primary="Players" secondary={players.length} /></ListItem>
+            <ListItem><ListItemText primary="Events" secondary={events.length} /></ListItem>
+            <ListItem><ListItemText primary="Matches" secondary={events.filter(e=>e.type==='match').length} /></ListItem>
+            <ListItem><ListItemText primary="Trainings" secondary={events.filter(e=>e.type==='training').length} /></ListItem>
+            <ListItem><ListItemText primary="First Event Date" secondary={firstEventDate || '—'} /></ListItem>
+            <ListItem><ListItemText primary="Most Recent Event Date" secondary={lastEventDate || '—'} /></ListItem>
           </List>
         </Paper>
-      )}
-
-      {players.length > 0 && (
-        <AttendanceChart />
       )}
     </Stack>
   );

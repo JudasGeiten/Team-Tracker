@@ -3,6 +3,7 @@ export interface Event {
   name: string;
   type: 'training' | 'match';
   index: number; // column index reference
+  date?: string; // ISO string parsed from name if recognizable
 }
 
 export type AttendanceStatus = 'attended' | 'absent' | 'not_invited';

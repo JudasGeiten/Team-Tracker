@@ -10,7 +10,7 @@ export default function PlayersPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [filterGroup, setFilterGroup] = useState<string | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
-  const [parentId, setParentId] = useState<string | ''>('');
+  // hierarchy removed
 
   const filteredPlayers = useMemo(() => {
     return players.filter(p => {
@@ -22,7 +22,7 @@ export default function PlayersPage() {
 
   function openManageGroups() { setGroupDialogOpen(true); }
   function closeManageGroups() { setGroupDialogOpen(false); setEditingGroupId(null); setNewGroupName(''); }
-  function handleAddGroup() { if (!newGroupName.trim()) return; addGroup(newGroupName.trim(), parentId || null); setNewGroupName(''); setParentId(''); }
+  function handleAddGroup() { if (!newGroupName.trim()) return; addGroup(newGroupName.trim()); setNewGroupName(''); }
   function handleRenameGroup(id: string, current: string) { setEditingGroupId(id); setNewGroupName(current); }
   function saveRename() { if (editingGroupId && newGroupName.trim()) { renameGroup(editingGroupId, newGroupName.trim()); setEditingGroupId(null); setNewGroupName(''); } }
 
@@ -83,12 +83,7 @@ export default function PlayersPage() {
           <Stack spacing={2}>
             <Stack direction="row" spacing={1}>
               <TextField label={editingGroupId ? 'Rename group' : 'New group'} size="small" fullWidth value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
-              {!editingGroupId && (
-                <Select size="small" value={parentId} displayEmpty onChange={e => setParentId(e.target.value as any)} sx={{ minWidth:140 }}>
-                  <MenuItem value=""><em>No parent</em></MenuItem>
-                  {groups.filter(g=> !editingGroupId || g.id !== editingGroupId).map(g => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
-                </Select>
-              )}
+              {/* parent selection removed */}
               {editingGroupId ? (
                 <Button onClick={saveRename} variant="contained">Save</Button>
               ) : (
@@ -97,8 +92,8 @@ export default function PlayersPage() {
             </Stack>
             <Box>
               {groups.map(g => (
-                <Stack key={g.id} direction="row" alignItems="center" spacing={1} sx={{ mb:1, pl: hierarchyDepth(g, groups)*1 }}>
-                  <Box sx={{ flexGrow:1 }}>{renderGroupPath(g, groups)}</Box>
+                <Stack key={g.id} direction="row" alignItems="center" spacing={1} sx={{ mb:1 }}>
+                  <Box sx={{ flexGrow:1 }}>{g.name}</Box>
                   <Button size="small" onClick={() => handleRenameGroup(g.id, g.name)}>Rename</Button>
                   <IconButton size="small" onClick={() => removeGroup(g.id)}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
@@ -115,11 +110,4 @@ export default function PlayersPage() {
   );
 }
 
-function hierarchyDepth(g:any, groups:any[]): number {
-  let d=0; let cur=g; while (cur.parentId){ cur = groups.find(x=>x.id===cur.parentId); if(!cur) break; d++; }
-  return d;
-}
-function renderGroupPath(g:any, groups:any[]): string {
-  const parts=[g.name]; let cur=g; while (cur.parentId){ cur = groups.find(x=>x.id===cur.parentId); if(!cur) break; parts.unshift(cur.name); }
-  return parts.join(' / ');
-}
+// hierarchy helpers removed

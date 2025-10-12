@@ -30,7 +30,6 @@ export interface Group {
   id: string;
   name: string;
   color?: string;
-  parentId?: string | null; // new: allow nesting
 }
 
 export interface TeamGenerationSettings {

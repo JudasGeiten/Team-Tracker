@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { usePlayersStore } from '../state/usePlayersStore';
-import { Box, Stack, Paper, Typography, TextField, Button, Select, MenuItem, IconButton, Divider } from '@mui/material';
+import { Box, Stack, Paper, Typography, TextField, Button, IconButton, Divider } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 export default function GroupsPage() {
-  const { groups, players, addGroup, removeGroup, renameGroup, updateGroupParent } = usePlayersStore() as any;
+  const { groups, players, addGroup, removeGroup, renameGroup } = usePlayersStore() as any;
   const [name, setName] = useState('');
-  const [parentId, setParentId] = useState<string | ''>('');
+  // parentId removed; flat groups
   const [filter, setFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -16,17 +16,14 @@ export default function GroupsPage() {
 
   function submit() {
     if (!name.trim()) return;
-    addGroup(name.trim(), parentId || null);
-    setName(''); setParentId('');
+    addGroup(name.trim());
+    setName('');
   }
 
-  function startEdit(g:any) { setEditingId(g.id); setName(g.name); setParentId(g.parentId || ''); }
-  function saveEdit() { if (editingId && name.trim()) { renameGroup(editingId, name.trim()); updateGroupParent(editingId, parentId || null); setEditingId(null); setName(''); setParentId(''); } }
+  function startEdit(g:any) { setEditingId(g.id); setName(g.name); }
+  function saveEdit() { if (editingId && name.trim()) { renameGroup(editingId, name.trim()); setEditingId(null); setName(''); } }
 
-  function renderPath(g:any) {
-    const parts=[g.name]; let cur=g; while(cur.parentId){ cur=groups.find((x:any)=>x.id===cur.parentId); if(!cur) break; parts.unshift(cur.name); }
-    return parts.join(' / ');
-  }
+  const renderPath = (g:any) => g.name;
 
   function groupPlayerCount(groupId:string) {
     return players.filter((p:any)=>p.groupId===groupId).length;
@@ -38,12 +35,9 @@ export default function GroupsPage() {
         <Typography variant="h6" gutterBottom>{editingId ? 'Edit Group' : 'Add Group'}</Typography>
         <Stack direction={{ xs:'column', sm:'row' }} spacing={2}>
           <TextField label="Name" value={name} onChange={e=>setName(e.target.value)} size="small" />
-          <Select size="small" value={parentId} displayEmpty onChange={e=>setParentId(e.target.value as any)} sx={{ minWidth:160 }}>
-            <MenuItem value=""><em>No parent</em></MenuItem>
-            {groups.filter((g:any)=> g.id!==editingId).map((g:any)=> <MenuItem key={g.id} value={g.id}>{renderPath(g)}</MenuItem>)}
-          </Select>
+          {/* parent selection removed */}
           {editingId ? <Button variant="contained" onClick={saveEdit}>Save</Button> : <Button variant="contained" onClick={submit}>Add</Button>}
-          {editingId && <Button onClick={()=>{ setEditingId(null); setName(''); setParentId(''); }}>Cancel</Button>}
+          {editingId && <Button onClick={()=>{ setEditingId(null); setName(''); }}>Cancel</Button>}
         </Stack>
       </Paper>
 

@@ -46,6 +46,8 @@ export async function parseImport(file: File): Promise<ImportResult> {
     const nameCell = row.getCell(nameCol);
     const name = nameCell.value?.toString().trim();
     if (!name) continue;
+    // New rule: ignore any player whose name starts with '*'
+    if (name.startsWith('*')) continue;
 
     const player: Player = {
       id: nanoid(),

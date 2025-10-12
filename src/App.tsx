@@ -13,7 +13,7 @@ function App() {
       <CssBaseline />
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>Team Tracker</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>Team Manager</Typography>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="secondary">
             <Tab label="Dashboard" />
             <Tab label="Players" />

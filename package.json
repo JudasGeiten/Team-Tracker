@@ -1,7 +1,8 @@
 {
-  "name": "team-tracker",
+  "name": "team-manager",
   "private": true,
   "version": "0.1.0",
+  "description": "Team Manager - offline web app for youth football team management (import, groups, balanced team generation, reports)",
   "type": "module",
   "scripts": {
     "dev": "vite",

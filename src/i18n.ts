@@ -52,7 +52,19 @@ const resources = {
       matchesPerWeekSubtitle: 'Bar color: green ≥ 1 match/week, orange < 1 match/week. Reference line at 1.',
       matchesLabel: 'Matches',
       weeksLabel: 'Weeks',
-      rateLabel: 'Matches/week'
+      rateLabel: 'Matches/week',
+      // New median-based charts
+      matchesMedianTitle: 'Match rate deviation (per week)',
+  matchesMedianSubtitle: 'Deviation from median ({{median}}). Labels show difference from median.',
+      medianLabel: 'Median',
+      trainingAttendanceTitle: 'Training attendance % deviation',
+  trainingAttendanceSubtitle: 'Deviation from median attendance % ({{median}}). Labels show difference.',
+      attendedLabel: 'Attended trainings',
+      attendancePctLabel: 'Attendance %'
+      , unit: { week: 'Per week', month: 'Per month', sixMonths: 'Per 6 months', year: 'Per year' }
+      , rateUnitLabel: { week: 'Matches per week', month: 'Matches per month', sixMonths: 'Matches per 6 months', year: 'Matches per year' }
+      , rateLabelUnit: { week: 'Matches/week', month: 'Matches/month', sixMonths: 'Matches/6mo', year: 'Matches/year' }
+      , rangeSpanLabel: 'Span: {{weeks}} weeks'
     }
   }},
   no: { translation: {
@@ -105,7 +117,18 @@ const resources = {
       matchesPerWeekSubtitle: 'Farge: grønn ≥ 1 kamp/uke, oransje < 1 kamp/uke. Referanselinje på 1.',
       matchesLabel: 'Kamper',
       weeksLabel: 'Uker',
-      rateLabel: 'Kamper/uke'
+      rateLabel: 'Kamper/uke',
+      matchesMedianTitle: 'Kampfrekvens avvik (per uke)',
+  matchesMedianSubtitle: 'Avvik fra median ({{median}}). Etiketter viser differanse fra median.',
+      medianLabel: 'Median',
+      trainingAttendanceTitle: 'Treningsoppmøte % avvik',
+  trainingAttendanceSubtitle: 'Avvik fra median oppmøte % ({{median}}). Etiketter viser differanse.',
+      attendedLabel: 'Møtte på treninger',
+      attendancePctLabel: 'Oppmøte %'
+      , unit: { week: 'Per uke', month: 'Per måned', sixMonths: 'Per 6 måneder', year: 'Per år' }
+      , rateUnitLabel: { week: 'Kamper per uke', month: 'Kamper per måned', sixMonths: 'Kamper per 6 måneder', year: 'Kamper per år' }
+      , rateLabelUnit: { week: 'Kamper/uke', month: 'Kamper/måned', sixMonths: 'Kamper/6mnd', year: 'Kamper/år' }
+      , rangeSpanLabel: 'Periode: {{weeks}} uker'
     }
   }}
 };

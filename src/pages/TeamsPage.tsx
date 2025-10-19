@@ -20,10 +20,9 @@ function groupColor(seed: string): string {
 
 export default function TeamsPage() {
   const { players, groups } = usePlayersStore();
-  const { teams, setTeams } = useTeamsStore();
+  const { teams, setTeams, waitList } = useTeamsStore();
   const [mode, setMode] = useState<'mixed' | 'singleGroup'>('mixed');
   const [groupId, setGroupId] = useState('');
-  const [targetType, setTargetType] = useState<'teamSize' | 'teamCount'>('teamSize');
   const [teamSize, setTeamSize] = useState(8);
   const [teamCount, setTeamCount] = useState(2);
   const [weighting, setWeighting] = useState(true);
@@ -37,16 +36,16 @@ export default function TeamsPage() {
   function handleGenerate() {
     setError(null);
     if (!eligiblePlayers.length) { setError('No eligible players.'); return; }
-    if (targetType === 'teamSize' && (!teamSize || teamSize < 1)) { setError('Team size must be >= 1'); return; }
-    if (targetType === 'teamCount' && (!teamCount || teamCount < 2)) { setError('Team count must be >= 2'); return; }
-    const teams = generateTeams({
+    if (!teamSize || teamSize < 1) { setError('Team size must be >= 1'); return; }
+    if (!teamCount || teamCount < 1) { setError('Team count must be >= 1'); return; }
+    const result = generateTeams({
       players: players,
       mode,
       groupId: mode === 'singleGroup' ? groupId || undefined : undefined,
       weighting,
-      target: targetType === 'teamSize' ? { teamSize } : { teamCount }
+      target: { teamSize, teamCount }
     });
-    setTeams(teams);
+    setTeams(result.teams, result.waitList);
   }
 
   return (
@@ -69,16 +68,12 @@ export default function TeamsPage() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" gutterBottom>Target</Typography>
-            <RadioGroup row value={targetType} onChange={e => setTargetType(e.target.value as any)}>
-              <FormControlLabel value="teamSize" control={<Radio />} label="Team Size" />
-              <FormControlLabel value="teamCount" control={<Radio />} label="Team Count" />
-            </RadioGroup>
-            {targetType === 'teamSize' ? (
+            <Typography variant="subtitle2" gutterBottom>Targets</Typography>
+            <Stack direction={{ xs:'column', sm:'row' }} spacing={2}>
               <TextField type="number" size="small" label="Team Size" value={teamSize} onChange={e=>setTeamSize(Number(e.target.value))} sx={{ mt:1, width:140 }} />
-            ) : (
               <TextField type="number" size="small" label="Team Count" value={teamCount} onChange={e=>setTeamCount(Number(e.target.value))} sx={{ mt:1, width:140 }} />
-            )}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display:'block', mt:1 }}>Capacity = size * count. Overflow players go to the wait list.</Typography>
           </Box>
 
             <FormControlLabel control={<Checkbox checked={weighting} onChange={e=>setWeighting(e.target.checked)} />} label="Fairness weighting (prioritize lower attendance)" />
@@ -144,6 +139,16 @@ export default function TeamsPage() {
               </Grid>
             ))}
           </Grid>
+          {waitList.length > 0 && (
+            <Box mt={3}>
+              <Divider sx={{ mb:1 }}>Wait List ({waitList.length})</Divider>
+              <Stack direction="row" flexWrap="wrap" gap={1}>
+                {waitList.map(pid => {
+                  const pl = players.find(p=>p.id===pid); return <Paper key={pid} variant="outlined" sx={{ px:1, py:0.5 }}><Typography variant="body2">{pl?.name || 'Unknown'}</Typography></Paper>;
+                })}
+              </Stack>
+            </Box>
+          )}
         </Paper>
       )}
     </Stack>

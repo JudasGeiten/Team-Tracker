@@ -1,4 +1,4 @@
-import { Player, GeneratedTeam } from '../../types/domain';
+import { Player, GeneratedTeam, TeamGenerationResult } from '../../types/domain';
 import { nanoid } from 'nanoid';
 
 interface Options {
@@ -9,7 +9,7 @@ interface Options {
   groupId?: string; // for singleGroup mode
 }
 
-export function generateTeams(opts: Options): GeneratedTeam[] {
+export function generateTeams(opts: Options): TeamGenerationResult {
   let pool = opts.players;
   if (opts.mode === 'singleGroup' && opts.groupId) {
     pool = pool.filter(p => p.groupId === opts.groupId);
@@ -22,7 +22,9 @@ export function generateTeams(opts: Options): GeneratedTeam[] {
   else teamsCount = 2;
 
   // If nothing or trivial, early return
-  if (pool.length === 0 || teamsCount <= 0) return [];
+  if (pool.length === 0 || teamsCount <= 0) return { teams: [], waitList: [] };
+  const hardCapPerTeam = opts.target.teamSize; // if provided acts as max size
+  const totalCapacity = hardCapPerTeam ? hardCapPerTeam * teamsCount : undefined;
 
   // Group players by groupId (undefined grouped under '__none')
   const groupsMap = pool.reduce<Record<string, Player[]>>((acc, p) => {
@@ -36,7 +38,8 @@ export function generateTeams(opts: Options): GeneratedTeam[] {
   function weightedShuffle(players: Player[]): Player[] {
     const weighted = players.map(p => ({
       player: p,
-      weight: opts.weighting ? 1 / ((p.attendedTotal || 0) + 1) : 1
+      // New rule: higher attendance => higher selection probability
+      weight: opts.weighting ? ((p.attendedTotal || 0) + 1) : 1
     }));
     const out: Player[] = [];
     const arr = [...weighted];
@@ -140,6 +143,29 @@ export function generateTeams(opts: Options): GeneratedTeam[] {
       team.playerIds.push(p.id);
     }
   }
-  ungroupedShuffled.forEach(p => pushBalanced(p));
-  return teams;
+  const waitList: string[] = [];
+  ungroupedShuffled.forEach(p => {
+    // If we have a total capacity and it's reached, push to waitList
+    if (totalCapacity !== undefined) {
+      const assignedCount = teams.reduce((s,t)=>s + t.playerIds.length, 0);
+      if (assignedCount >= totalCapacity) { waitList.push(p.id); return; }
+    }
+    pushBalanced(p);
+  });
+
+  // If after full distribution we still exceed capacity (shouldn't) trim excess to waitList
+  if (totalCapacity !== undefined) {
+    let assignedCount = teams.reduce((s,t)=>s + t.playerIds.length, 0);
+    if (assignedCount > totalCapacity) {
+      // remove from largest teams until fits
+      while (assignedCount > totalCapacity) {
+        const largest = teams.sort((a,b)=>b.playerIds.length - a.playerIds.length)[0];
+        const removed = largest.playerIds.pop();
+        if (!removed) break;
+        waitList.push(removed);
+        assignedCount--;
+      }
+    }
+  }
+  return { teams, waitList };
 }

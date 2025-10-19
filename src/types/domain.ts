@@ -35,8 +35,8 @@ export interface Group {
 
 export interface TeamGenerationSettings {
   mode: 'mixed' | 'singleGroup';
-  teamSize?: number; // mutually exclusive with teamCount
-  teamCount?: number;
+  teamSize?: number; // can now be combined with teamCount (size is a hard cap per team)
+  teamCount?: number; // when both provided: total capacity = teamSize * teamCount, overflow -> wait list
   weighting: boolean;
 }
 
@@ -44,4 +44,9 @@ export interface GeneratedTeam {
   id: string;
   name: string;
   playerIds: string[];
+}
+
+export interface TeamGenerationResult {
+  teams: GeneratedTeam[];
+  waitList: string[]; // playerIds that did not fit into any team capacity
 }

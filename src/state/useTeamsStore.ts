@@ -3,10 +3,14 @@ import { GeneratedTeam } from '../types/domain';
 
 interface TeamsState {
   teams: GeneratedTeam[];
-  setTeams: (teams: GeneratedTeam[]) => void;
+  waitList: string[];
+  setTeams: (teams: GeneratedTeam[], waitList?: string[]) => void;
+  clear: () => void;
 }
 
 export const useTeamsStore = create<TeamsState>(set => ({
   teams: [],
-  setTeams: (teams) => set({ teams })
+  waitList: [],
+  setTeams: (teams, waitList = []) => set({ teams, waitList }),
+  clear: () => set({ teams: [], waitList: [] })
 }));

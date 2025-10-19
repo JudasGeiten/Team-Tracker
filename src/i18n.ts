@@ -23,7 +23,7 @@ const resources = {
     playersPage: {
       searchPlaceholder: 'Search players',
       manageGroups: 'Manage Groups',
-      table: { name: 'Name', group: 'Group', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendancePct: 'Attendance %', actions: 'Actions' },
+      table: { name: 'Name', group: 'Group', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendancePct: 'Attendance %', actions: 'Actions', trainingsGroup: 'Trainings', matchesGroup: 'Matches' },
       details: 'Details', removeConfirm: 'Remove player {{name}}? This cannot be undone.',
       groupsDialog: { title: 'Groups', newGroup: 'New group', renameGroup: 'Rename group', add: 'Add', save: 'Save', cancel: 'Cancel', noneYet: 'No groups yet.' },
       playerDetails: {
@@ -57,7 +57,7 @@ const resources = {
     playersPage: {
       searchPlaceholder: 'Søk spillere',
       manageGroups: 'Administrer grupper',
-      table: { name: 'Navn', group: 'Gruppe', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendancePct: 'Oppmøte %', actions: 'Handlinger' },
+      table: { name: 'Navn', group: 'Gruppe', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendancePct: 'Oppmøte %', actions: 'Handlinger', trainingsGroup: 'Treninger', matchesGroup: 'Kamper' },
       details: 'Detaljer', removeConfirm: 'Fjern spiller {{name}}? Dette kan ikke angres.',
       groupsDialog: { title: 'Grupper', newGroup: 'Ny gruppe', renameGroup: 'Endre navn', add: 'Legg til', save: 'Lagre', cancel: 'Avbryt', noneYet: 'Ingen grupper ennå.' },
       playerDetails: {
@@ -66,7 +66,7 @@ const resources = {
       noPlayers: 'Ingen spillere'
     },
     teamsPage: {
-      generationTitle: 'Laggenerering', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', regenerateAgain: 'Generer på nytt', confirmTitle: 'Generer på nytt?', confirmBody: 'Dette vil forkaste nåværende laginndeling og generere nye lag. Fortsette?', confirmCancel: 'Avbryt', confirmOk: 'Generer', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
+      generationTitle: 'Lag', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', regenerateAgain: 'Generer på nytt', confirmTitle: 'Generer på nytt?', confirmBody: 'Dette vil forkaste nåværende laginndeling og generere nye lag. Fortsette?', confirmCancel: 'Avbryt', confirmOk: 'Generer', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
     },
     reportsPage: { placeholder: 'Rapporter og PDF-eksport kommer.' }
   }}

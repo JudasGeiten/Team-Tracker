@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
-import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Toolbar, List, ListItem, ListItemText, TextField, Select, MenuItem, useMediaQuery } from '@mui/material';
+import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Toolbar, List, ListItem, ListItemText, TextField, Select, MenuItem, useMediaQuery, Chip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import { Player, Event, AttendanceRecord } from '../types/domain';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -33,6 +34,28 @@ export default function PlayersPage() {
   function handleRenameGroup(id: string, current: string) { setEditingGroupId(id); setNewGroupName(current); }
   function saveRename() { if (editingGroupId && newGroupName.trim()) { renameGroup(editingGroupId, newGroupName.trim()); setEditingGroupId(null); setNewGroupName(''); } }
 
+  // Precompute per-player match/training invited & attended stats
+  const eventById: Record<string, Event> = useMemo(() => Object.fromEntries(events.map((e: Event) => [e.id, e])), [events]);
+  const attendanceByPlayerType = useMemo(() => {
+    const acc: Record<string, { match: { invited: number; attended: number }; training: { invited: number; attended: number } }> = {};
+    filteredPlayers.forEach((p: Player) => {
+      acc[p.id] = { match: { invited: 0, attended: 0 }, training: { invited: 0, attended: 0 } };
+    });
+    attendance.forEach((a: AttendanceRecord) => {
+      if (!acc[a.playerId]) return; // skip filtered out players
+      const ev = eventById[a.eventId];
+      if (!ev) return;
+      if (a.status === 'attended' || a.status === 'absent') acc[a.playerId][ev.type].invited++;
+      if (a.status === 'attended') acc[a.playerId][ev.type].attended++;
+    });
+    return acc;
+  }, [attendance, eventById, filteredPlayers]);
+
+  const trainingHeaderBg = alpha(theme.palette.success.main, 0.15);
+  const matchHeaderBg = alpha(theme.palette.warning.main, 0.2);
+  const trainingCellBg = alpha(theme.palette.success.main, 0.06);
+  const matchCellBg = alpha(theme.palette.warning.main, 0.07);
+
   return (
     <Stack spacing={2}>
       <Toolbar disableGutters sx={{ gap:2, flexWrap:'wrap' }}>
@@ -48,21 +71,34 @@ export default function PlayersPage() {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>{t('playersPage.table.name')}</TableCell>
-              <TableCell>{t('playersPage.table.group')}</TableCell>
-              <TableCell align="right">{t('playersPage.table.invited')}</TableCell>
-              <TableCell align="right">{t('playersPage.table.attended')}</TableCell>
-              {!isMobile && <TableCell align="right">{t('playersPage.table.absent')}</TableCell>}
-              {!isMobile && <TableCell align="right">{t('playersPage.table.attendancePct')}</TableCell>}
-              <TableCell align="right">{t('playersPage.table.actions')}</TableCell>
+              <TableCell rowSpan={2} sx={{ fontWeight:'bold' }}>{t('playersPage.table.name')}</TableCell>
+              <TableCell rowSpan={2} sx={{ fontWeight:'bold' }}>{t('playersPage.table.group')}</TableCell>
+              <TableCell align="center" colSpan={4} sx={{ backgroundColor: trainingHeaderBg, fontWeight:'bold', borderLeft: '2px solid', borderColor: trainingHeaderBg }}>{t('playersPage.table.trainingsGroup')}</TableCell>
+              <TableCell align="center" colSpan={4} sx={{ backgroundColor: matchHeaderBg, fontWeight:'bold', borderLeft: '2px solid', borderColor: matchHeaderBg }}>{t('playersPage.table.matchesGroup')}</TableCell>
+              <TableCell rowSpan={2} align="right" sx={{ fontWeight:'bold' }}>{t('playersPage.table.actions')}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell align="right" sx={{ backgroundColor: trainingHeaderBg }}>{t('playersPage.table.invited')}</TableCell>
+              <TableCell align="right" sx={{ backgroundColor: trainingHeaderBg }}>{t('playersPage.table.attended')}</TableCell>
+              {!isMobile && <TableCell align="right" sx={{ backgroundColor: trainingHeaderBg }}>{t('playersPage.table.absent')}</TableCell>}
+              {!isMobile && <TableCell align="right" sx={{ backgroundColor: trainingHeaderBg }}>{t('playersPage.table.attendancePct')}</TableCell>}
+              <TableCell align="right" sx={{ backgroundColor: matchHeaderBg }}>{t('playersPage.table.invited')}</TableCell>
+              <TableCell align="right" sx={{ backgroundColor: matchHeaderBg }}>{t('playersPage.table.attended')}</TableCell>
+              {!isMobile && <TableCell align="right" sx={{ backgroundColor: matchHeaderBg }}>{t('playersPage.table.absent')}</TableCell>}
+              {!isMobile && <TableCell align="right" sx={{ backgroundColor: matchHeaderBg }}>{t('playersPage.table.attendancePct')}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredPlayers.map((p: Player) => {
-              const invited = p.invitedTotal || 0;
-              const attended = p.attendedTotal || 0;
-              const absent = invited - attended;
-              const pct = invited ? ((attended / invited) * 100).toFixed(1) : '0.0';
+              const typeStats = attendanceByPlayerType[p.id];
+              const trInv = typeStats?.training.invited || 0;
+              const trAtt = typeStats?.training.attended || 0;
+              const trAbs = trInv - trAtt;
+              const trPct = trInv ? ((trAtt / trInv) * 100).toFixed(1) : '0.0';
+              const mInv = typeStats?.match.invited || 0;
+              const mAtt = typeStats?.match.attended || 0;
+              const mAbs = mInv - mAtt;
+              const mPct = mInv ? ((mAtt / mInv) * 100).toFixed(1) : '0.0';
               return (
                 <TableRow key={p.id} hover>
                   <TableCell>{p.name}</TableCell>
@@ -72,10 +108,14 @@ export default function PlayersPage() {
                       {groups.map((g:any)=><MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
                     </Select>
                   </TableCell>
-                  <TableCell align="right">{invited}</TableCell>
-                  <TableCell align="right">{attended}</TableCell>
-                  {!isMobile && <TableCell align="right">{absent}</TableCell>}
-                  {!isMobile && <TableCell align="right">{pct}%</TableCell>}
+                  <TableCell align="right" sx={{ backgroundColor: trainingCellBg }}>{trInv}</TableCell>
+                  <TableCell align="right" sx={{ backgroundColor: trainingCellBg }}>{trAtt}</TableCell>
+                  {!isMobile && <TableCell align="right" sx={{ backgroundColor: trainingCellBg }}>{trAbs}</TableCell>}
+                  {!isMobile && <TableCell align="right" sx={{ backgroundColor: trainingCellBg }}>{trPct}%</TableCell>}
+                  <TableCell align="right" sx={{ backgroundColor: matchCellBg }}>{mInv}</TableCell>
+                  <TableCell align="right" sx={{ backgroundColor: matchCellBg }}>{mAtt}</TableCell>
+                  {!isMobile && <TableCell align="right" sx={{ backgroundColor: matchCellBg }}>{mAbs}</TableCell>}
+                  {!isMobile && <TableCell align="right" sx={{ backgroundColor: matchCellBg }}>{mPct}%</TableCell>}
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <Button size="small" onClick={()=>setDetailsPlayerId(p.id)}>{t('playersPage.details')}</Button>
@@ -90,7 +130,7 @@ export default function PlayersPage() {
               );
             })}
             {filteredPlayers.length === 0 && (
-              <TableRow><TableCell colSpan={7}><Typography variant="body2" color="text.secondary">{t('playersPage.noPlayers')}</Typography></TableCell></TableRow>
+              <TableRow><TableCell colSpan={11}><Typography variant="body2" color="text.secondary">{t('playersPage.noPlayers')}</Typography></TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -100,18 +140,18 @@ export default function PlayersPage() {
       {isMobile && (
         <Stack spacing={1}>
           {filteredPlayers.map((p: Player) => {
-            const invited = p.invitedTotal || 0;
-            const attended = p.attendedTotal || 0;
-            const absent = invited - attended;
-            const pct = invited ? ((attended / invited) * 100).toFixed(1) : '0.0';
+            const stats = attendanceByPlayerType[p.id];
+            const trInv = stats?.training.invited || 0; const trAtt = stats?.training.attended || 0; const trPct = trInv ? ((trAtt / trInv) * 100).toFixed(1) : '0.0';
+            const mInv = stats?.match.invited || 0; const mAtt = stats?.match.attended || 0; const mPct = mInv ? ((mAtt / mInv) * 100).toFixed(1) : '0.0';
             return (
               <Paper key={p.id} variant="outlined" sx={{ p:1 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                   <Box>
                     <Typography variant="subtitle2" noWrap>{p.name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {t('playersPage.table.invited')}: {invited} · {t('playersPage.table.attended')}: {attended} · {t('playersPage.table.absent')}: {absent} · {t('playersPage.table.attendancePct')}: {pct}%
-                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt:0.5, flexWrap:'wrap' }}>
+                      <Chip size="small" label={`${t('playersPage.table.trainingsGroup')}: ${trInv}/${trAtt} (${trPct}%)`} sx={{ backgroundColor: trainingCellBg }} />
+                      <Chip size="small" label={`${t('playersPage.table.matchesGroup')}: ${mInv}/${mAtt} (${mPct}%)`} sx={{ backgroundColor: matchCellBg }} />
+                    </Stack>
                   </Box>
                   <Stack direction="row" spacing={1}>
                     <Select size="small" value={p.groupId || ''} displayEmpty onChange={e => assignGroup(p.id, e.target.value || null)}>

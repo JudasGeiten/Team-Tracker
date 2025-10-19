@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox } from '@mui/material';
+import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, Chip } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { parseImport } from '../lib/excel/parseImport';
 import { usePlayersStore } from '../state/usePlayersStore';
@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [clarifyOpen, setClarifyOpen] = useState(false);
   const [candidateTeams, setCandidateTeams] = useState<string[]>([]);
   const [selectedMatchTeams, setSelectedMatchTeams] = useState<string[]>([]);
+  const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
   const [discardIds, setDiscardIds] = useState<Set<string>>(new Set()); // manual discards during clarification
   const [dragTarget, setDragTarget] = useState<string | null>(null); // 'training' | 'match' | 'discard'
 
@@ -29,24 +30,26 @@ export default function DashboardPage() {
       const res = await parseImport(file);
       loadImport(res);
       console.log('Import debug', res.debug);
-      // Build candidate team tokens from events containing dash variants ( - , – , — ) excluding training events.
-      const tokens = new Set<string>();
+      // Build candidate team tokens and counts from events containing dash variants ( - , – , — ) excluding training events.
+      const tokenCounts: Record<string, number> = {};
       const dashRegex = /\s*[\-–—]\s*/; // match any dash with optional surrounding spaces
       res.events.forEach(ev => {
         if (/trening/i.test(ev.name)) return; // skip trainings
         if (dashRegex.test(ev.name)) {
           const sides = ev.name.split(dashRegex).map(s => s.trim()).filter(Boolean);
           // Typically two sides: home and away team
-          sides.forEach(side => tokens.add(side));
+          sides.forEach(side => {
+            const norm = side.replace(/\*/g,'').trim();
+            if (!norm) return;
+            tokenCounts[norm] = (tokenCounts[norm] || 0) + 1;
+          });
         }
       });
-  const arr = Array.from(tokens).map(t => t.replace(/\*/g,'').trim()).filter(Boolean);
-  // Deduplicate after normalization
-  const normalizedSet = new Set(arr);
-  let finalTokens = Array.from(normalizedSet);
+  let finalTokens = Object.keys(tokenCounts);
   // Alphabetical sort (locale-aware, case-insensitive) using Norwegian locale fallback to default
   finalTokens.sort((a,b)=> a.localeCompare(b, 'nb', { sensitivity: 'base' }));
   setCandidateTeams(finalTokens);
+      setTeamCounts(tokenCounts);
       setSelectedMatchTeams([]);
       setDiscardIds(new Set());
       setClarifyOpen(true);
@@ -199,19 +202,24 @@ export default function DashboardPage() {
       <DialogContent dividers>
         <Typography variant="body2" color="text.secondary" sx={{ mb:2 }}>{t('dashboard.clarifyModal.intro')}</Typography>
         <Typography variant="subtitle2" gutterBottom>{t('dashboard.clarifyModal.detectedTeams')}</Typography>
-        <Paper variant="outlined" sx={{ mb:2 }}>
-          <List dense>
-            {candidateTeams.map(team => (
-              <ListItem key={team} disableGutters secondaryAction={
-                <Checkbox edge="end" checked={selectedMatchTeams.includes(team)} onChange={(e)=>{
-                  setSelectedMatchTeams(prev => e.target.checked ? [...prev, team] : prev.filter(t => t!==team));
-                }} />
-              }>
-                <ListItemText primary={team} />
-              </ListItem>
-            ))}
-            {candidateTeams.length === 0 && <ListItem><ListItemText primary={t('dashboard.clarifyModal.noTeamsDetected') || 'No team tokens detected.'} /></ListItem>}
-          </List>
+        <Stack direction="row" spacing={1} mb={1} flexWrap="wrap" alignItems="center">
+          <Button size="small" variant="outlined" disabled={!candidateTeams.length} onClick={()=> setSelectedMatchTeams(candidateTeams)}>Velg alle</Button>
+          <Button size="small" variant="text" disabled={!selectedMatchTeams.length} onClick={()=> setSelectedMatchTeams([])}>Tøm</Button>
+        </Stack>
+        <Paper variant="outlined" sx={{ p:1, display:'flex', flexWrap:'wrap', gap:1 }}>
+          {candidateTeams.map(team => {
+            const selected = selectedMatchTeams.includes(team);
+            return (
+              <Chip key={team}
+                label={`${team} (${teamCounts[team]||0})`}
+                color={selected ? 'primary':'default'}
+                variant={selected ? 'filled':'outlined'}
+                onClick={()=> setSelectedMatchTeams(prev => selected ? prev.filter(t=>t!==team) : [...prev, team])}
+                sx={{ cursor:'pointer' }}
+              />
+            );
+          })}
+          {candidateTeams.length === 0 && <Typography variant="caption" color="text.secondary">{t('dashboard.clarifyModal.noTeamsDetected') || 'No team tokens detected.'}</Typography>}
         </Paper>
         {/* Removed individual event type confirmation list for simplicity */}
       </DialogContent>

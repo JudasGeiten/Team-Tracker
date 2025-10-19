@@ -32,9 +32,20 @@ export async function parseImport(file: File): Promise<ImportResult> {
   for (let col = nameCol + fixedStatsCols; col <= headerRow.cellCount; col++) {
     const label = labelRow.getCell(col).value as string | undefined;
     if (!label) continue;
-    const type = /trening/i.test(label) ? 'training' : 'match';
+    const lower = label.toLowerCase();
+    let type: 'training' | 'match';
+    let needsTypeConfirmation = false;
+    if (/trening/.test(lower)) {
+      type = 'training';
+    } else if (/(kamp|match|game)/.test(lower)) {
+      type = 'match';
+    } else {
+      // Default to match but require confirmation from user
+      type = 'match';
+      needsTypeConfirmation = true;
+    }
     const parsedDate = extractDate(label);
-    events.push({ id: nanoid(), name: label, type, index: col, date: parsedDate || undefined });
+    events.push({ id: nanoid(), name: label, type, index: col, date: parsedDate || undefined, needsTypeConfirmation });
   }
 
   const players: Player[] = [];

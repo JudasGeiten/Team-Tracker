@@ -4,6 +4,7 @@ export interface Event {
   type: 'training' | 'match';
   index: number; // column index reference
   date?: string; // ISO string parsed from name if recognizable
+  needsTypeConfirmation?: boolean; // set true if classification was uncertain on import
 }
 
 export type AttendanceStatus = 'attended' | 'absent' | 'not_invited';
@@ -26,7 +27,6 @@ export interface Player {
   matchesAttended?: number; // derived
   trainingsAttended?: number; // derived
 }
-
 export interface Group {
   id: string;
   name: string;
@@ -34,7 +34,7 @@ export interface Group {
 }
 
 export interface TeamGenerationSettings {
-  mode: 'mixed' | 'singleGroup';
+  mode: 'mixed';
   teamSize?: number; // can now be combined with teamCount (size is a hard cap per team)
   teamCount?: number; // when both provided: total capacity = teamSize * teamCount, overflow -> wait list
   weighting: boolean;

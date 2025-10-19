@@ -3,17 +3,13 @@ import { nanoid } from 'nanoid';
 
 interface Options {
   players: Player[];
-  mode: 'mixed' | 'singleGroup';
+  mode: 'mixed';
   target: { teamSize?: number; teamCount?: number };
   weighting: boolean;
-  groupId?: string; // for singleGroup mode
 }
 
 export function generateTeams(opts: Options): TeamGenerationResult {
-  let pool = opts.players;
-  if (opts.mode === 'singleGroup' && opts.groupId) {
-    pool = pool.filter(p => p.groupId === opts.groupId);
-  }
+  const pool = opts.players;
 
   // Determine desired number of teams
   let teamsCount = 0;
@@ -26,9 +22,9 @@ export function generateTeams(opts: Options): TeamGenerationResult {
   const hardCapPerTeam = opts.target.teamSize; // if provided acts as max size
   const totalCapacity = hardCapPerTeam ? hardCapPerTeam * teamsCount : undefined;
 
-  // Group players by groupId (undefined grouped under '__none')
+  // Build groups map (empty string for no group)
   const groupsMap = pool.reduce<Record<string, Player[]>>((acc, p) => {
-    const key = p.groupId || '__none';
+    const key = p.groupId || '';
     if (!acc[key]) acc[key] = [];
     acc[key].push(p);
     return acc;
@@ -60,97 +56,41 @@ export function generateTeams(opts: Options): TeamGenerationResult {
   // Pre-create teams
   const teams: GeneratedTeam[] = Array.from({ length: teamsCount }, (_, i) => ({ id: nanoid(), name: `Team ${i + 1}`, playerIds: [] }));
 
-  // STEP 1: Ensure coverage – for each group that has at least teamsCount players, assign one unique player to each team
-  // We skip the '__none' pseudo group for coverage requirement.
-  const usedIds = new Set<string>();
-  Object.entries(groupsMap).forEach(([gid, playersInGroup]) => {
-    if (gid === '__none') return; // ignore ungrouped for coverage constraint
-    if (playersInGroup.length >= teamsCount) {
-      // Shuffle (weighted) within group to choose fair representatives
-      const shuffled = weightedShuffle(playersInGroup);
-      for (let t = 0; t < teamsCount; t++) {
-        const rep = shuffled[t];
-        if (!rep) break; // safety
-        teams[t].playerIds.push(rep.id);
-        usedIds.add(rep.id);
-      }
-    }
-  });
+  // Distribute per group to keep counts balanced across teams
+  const waitList: string[] = [];
+  const targetSize = hardCapPerTeam;
 
-  // STEP 2: Fill remaining slots with remaining players using weighted shuffle
-  const remaining = pool.filter(p => !usedIds.has(p.id));
-
-  // Strategy for balance:
-  // 1. Split remaining by group (excluding '__none'). For each group, weighted-shuffle its members.
-  // 2. Distribute each group's players round-robin across teams (always pick next team with lowest count for that group, tie -> fewest total players).
-  // 3. Finally add ungrouped players with existing size balancing logic.
-
-  const groupCountsPerTeam: Record<string, number[]> = {}; // groupId -> counts per team index
-  const byGroupRemaining = remaining.reduce<Record<string, Player[]>>((acc, p) => {
-    const key = p.groupId || '__none';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
-    return acc;
-  }, {});
-
-  // Initialize counts with already assigned representatives
-  teams.forEach((team, ti) => {
-    team.playerIds.forEach(pid => {
-      const player = pool.find(p => p.id === pid);
-      const gid = player?.groupId || '__none';
-      if (!groupCountsPerTeam[gid]) groupCountsPerTeam[gid] = Array(teamsCount).fill(0);
-      groupCountsPerTeam[gid][ti]++;
-    });
-  });
-
-  const realGroupKeys = Object.keys(byGroupRemaining).filter(k => k !== '__none');
-  realGroupKeys.forEach(gid => {
-    const plist = byGroupRemaining[gid];
-    if (!plist.length) return;
-    const shuffled = weightedShuffle(plist);
-    if (!groupCountsPerTeam[gid]) groupCountsPerTeam[gid] = Array(teamsCount).fill(0);
+  Object.values(groupsMap).forEach(groupPlayers => {
+    const shuffled = weightedShuffle(groupPlayers);
     shuffled.forEach(p => {
-      // choose team with smallest count for this group; tie-breaker: fewest total players
-      let bestIndex = 0;
+      if (totalCapacity !== undefined) {
+        const assignedCount = teams.reduce((s,t)=>s + t.playerIds.length, 0);
+        if (assignedCount >= totalCapacity) { waitList.push(p.id); return; }
+      }
+      // choose team where this group's presence is minimal; tie -> fewest total players
+      let bestIndex = -1;
       let bestScore = Infinity;
-      for (let t = 0; t < teamsCount; t++) {
-        const groupCount = groupCountsPerTeam[gid][t];
-        const teamSizeNow = teams[t].playerIds.length;
-        const score = groupCount * 1000 + teamSizeNow; // prioritize lower groupCount primarily
-        if (score < bestScore) { bestScore = score; bestIndex = t; }
+      for (let i = 0; i < teams.length; i++) {
+        const t = teams[i];
+        if (targetSize && t.playerIds.length >= targetSize) continue;
+        const groupCountInTeam = t.playerIds.reduce((c,pid)=>{
+          const pl = pool.find(pp=>pp.id===pid); return c + (pl?.groupId === p.groupId ? 1 : 0);
+        },0);
+        const totalInTeam = t.playerIds.length;
+        const score = groupCountInTeam * 1000 + totalInTeam;
+        if (score < bestScore) { bestScore = score; bestIndex = i; }
+      }
+      if (bestIndex === -1) {
+        // All teams at capacity; push to wait list if capacity enforced
+        if (totalCapacity !== undefined) { waitList.push(p.id); }
+        else {
+          // fallback: smallest team
+          teams.sort((a,b)=>a.playerIds.length - b.playerIds.length)[0].playerIds.push(p.id);
+        }
+        return;
       }
       teams[bestIndex].playerIds.push(p.id);
-      groupCountsPerTeam[gid][bestIndex]++;
     });
-    // mark consumed so we don't add again
-    delete byGroupRemaining[gid];
-  });
-
-  // Ungrouped players last (or players with '__none')
-  const ungrouped = byGroupRemaining['__none'] || [];
-  const ungroupedShuffled = weightedShuffle(ungrouped);
-
-  function pushBalanced(p: Player) {
-    if (opts.target.teamSize) {
-      const targetSize = opts.target.teamSize;
-      const underTarget = teams.filter(t => t.playerIds.length < targetSize);
-      let team: GeneratedTeam;
-      if (underTarget.length) team = underTarget.sort((a,b) => a.playerIds.length - b.playerIds.length)[0];
-      else team = teams.sort((a,b) => a.playerIds.length - b.playerIds.length)[0];
-      team.playerIds.push(p.id);
-    } else {
-      const team = teams.sort((a,b) => a.playerIds.length - b.playerIds.length)[0];
-      team.playerIds.push(p.id);
-    }
-  }
-  const waitList: string[] = [];
-  ungroupedShuffled.forEach(p => {
-    // If we have a total capacity and it's reached, push to waitList
-    if (totalCapacity !== undefined) {
-      const assignedCount = teams.reduce((s,t)=>s + t.playerIds.length, 0);
-      if (assignedCount >= totalCapacity) { waitList.push(p.id); return; }
-    }
-    pushBalanced(p);
   });
 
   // If after full distribution we still exceed capacity (shouldn't) trim excess to waitList

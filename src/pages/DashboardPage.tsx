@@ -4,7 +4,7 @@ import { parseImport } from '../lib/excel/parseImport';
 import { usePlayersStore } from '../state/usePlayersStore';
 
 export default function DashboardPage() {
-  const { players, events, attendance, importDebug, loadImport } = usePlayersStore();
+  const { players, events, attendance, importDebug, loadImport, updateEventType, discardEvent } = usePlayersStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   return (
     <Stack spacing={3}>
       <Paper sx={{ p:2 }}>
-        <Typography variant="h6" gutterBottom>Import Excel</Typography>
+  <Typography variant="h6" gutterBottom>Import from spond</Typography>
         <Button variant="contained" component="label" disabled={loading}>
           {loading ? 'Importing...' : 'Select file'}
           <input hidden type="file" accept='.xlsx,.xls' onChange={onFile} />
@@ -63,6 +63,26 @@ export default function DashboardPage() {
             <ListItem><ListItemText primary="First Event Date" secondary={firstEventDate || '—'} /></ListItem>
             <ListItem><ListItemText primary="Most Recent Event Date" secondary={lastEventDate || '—'} /></ListItem>
           </List>
+          {events.some(e=>e.needsTypeConfirmation) && (
+            <Box mt={2}>
+              <Typography variant="subtitle1" gutterBottom>Confirm event types</Typography>
+              <List dense>
+                {events.filter(e=>e.needsTypeConfirmation).map(e => (
+                  <ListItem key={e.id}
+                    secondaryAction={
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" variant={e.type==='training' ? 'contained':'outlined'} onClick={()=>updateEventType(e.id,'training')}>Training</Button>
+                        <Button size="small" variant={e.type==='match' ? 'contained':'outlined'} onClick={()=>updateEventType(e.id,'match')}>Match</Button>
+                        <Button size="small" color="error" variant='outlined' onClick={()=>discardEvent(e.id)}>Discard</Button>
+                      </Stack>
+                    }
+                  >
+                    <ListItemText primary={e.name} secondary={e.date ? e.date.split('T')[0] : 'No date'} />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
         </Paper>
       )}
     </Stack>

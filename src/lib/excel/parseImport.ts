@@ -18,8 +18,8 @@ export async function parseImport(file: File): Promise<ImportResult> {
   const sheet = wb.worksheets[0];
   if (!sheet) return { players: [], events: [], attendance: [], debug: {} };
 
-  const headerRow = sheet.getRow(1);
-  const labelRow = sheet.getRow(2);
+  const headerRow = sheet.getRow(1); // first row now expected to contain the date for each event column
+  const labelRow = sheet.getRow(2);  // second row contains the textual label (used for name & type detection)
 
   const headerValues = (headerRow.values ?? []) as any[];
   const nameCol = headerValues.findIndex(v => typeof v === 'string' && v.toUpperCase().includes('NAVN'));
@@ -30,7 +30,8 @@ export async function parseImport(file: File): Promise<ImportResult> {
 
   // Build events list
   for (let col = nameCol + fixedStatsCols; col <= headerRow.cellCount; col++) {
-    const label = labelRow.getCell(col).value as string | undefined;
+    const labelCell = labelRow.getCell(col).value;
+    const label = labelCell?.toString();
     if (!label) continue;
     const lower = label.toLowerCase();
     let type: 'training' | 'match';
@@ -44,7 +45,10 @@ export async function parseImport(file: File): Promise<ImportResult> {
       type = 'match';
       needsTypeConfirmation = true;
     }
-    const parsedDate = extractDate(label);
+    // Determine date: first preference -> headerRow cell (row 1). Fallback -> parse from label text.
+    const dateCell = headerRow.getCell(col).value as any;
+    const headerDerived = extractDateFromHeaderCell(dateCell);
+    const parsedDate = headerDerived || extractDate(label);
     events.push({ id: nanoid(), name: label, type, index: col, date: parsedDate || undefined, needsTypeConfirmation });
   }
 
@@ -148,6 +152,30 @@ function extractDate(label: string): string | null {
       const iso = new Date(Date.UTC(year, month - 1, day)).toISOString();
       return iso;
     }
+  }
+  return null;
+}
+
+// Attempt to extract ISO date string from a header cell which may be:
+// - a JS Date object
+// - an Excel serial number (number)
+// - a string in various formats
+function extractDateFromHeaderCell(val: any): string | null {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return new Date(Date.UTC(val.getFullYear(), val.getMonth(), val.getDate())).toISOString();
+  }
+  if (typeof val === 'number') {
+    // Excel serial date: days since 1899-12-30
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const ms = excelEpoch.getTime() + val * 24 * 60 * 60 * 1000;
+    return new Date(ms).toISOString();
+  }
+  if (typeof val === 'string') {
+    return extractDate(val);
+  }
+  if (typeof val === 'object' && val?.text) { // sometimes rich text objects
+    return extractDate(String(val.text));
   }
   return null;
 }

@@ -18,7 +18,20 @@ const resources = {
       },
       summaryTitle: 'Import Summary',
       players: 'Players', events: 'Events', matches: 'Matches', trainings: 'Trainings', firstEventDate: 'First Event Date', lastEventDate: 'Most Recent Event Date',
-      confirmTypes: 'Confirm event types', training: 'Training', match: 'Match', discard: 'Discard'
+      confirmTypes: 'Confirm event types', training: 'Training', match: 'Match', discard: 'Discard',
+      clarifyModal: {
+        title: 'Classify Imported Events',
+        intro: 'Select which identified team names should mark an event as a match. All names containing "trening" are already training. You can also discard events you do not want.',
+        detectedTeams: 'Detected team tokens',
+        teamMatchHint: 'Check teams that represent match participants',
+        chooseType: 'Choose type',
+        markMatch: 'Mark as Match',
+        markTraining: 'Mark as Training',
+        markDiscard: 'Discard',
+        applySelections: 'Apply Selections',
+        cancel: 'Cancel'
+      },
+      columns: { trainings: 'Trainings', matches: 'Matches', discarded: 'Discarded' }
     },
     playersPage: {
       searchPlaceholder: 'Search players',
@@ -34,7 +47,13 @@ const resources = {
     teamsPage: {
       generationTitle: 'Team Generation', targets: 'Targets', teamSize: 'Team Size', teamCount: 'Team Count', capacityHint: 'Capacity = size * count. Overflow players go to the wait list.', weightingLabel: 'Fairness weighting (prioritize lower attendance)', generateBtn: 'Generate Teams', regenerate: 'Regenerate', regenerateAgain: 'Regenerate Again', confirmTitle: 'Regenerate Teams?', confirmBody: 'This will discard the current team arrangement and generate new teams. Continue?', confirmCancel: 'Cancel', confirmOk: 'Regenerate', eligible: 'Eligible players', generatedTitle: 'Generated Teams', waitList: 'Wait List'
     },
-    reportsPage: { placeholder: 'Reports & PDF export UI to be implemented.' }
+    reportsPage: { placeholder: 'Reports & PDF export UI to be implemented.',
+      matchesPerWeekTitle: 'Matches per week per player',
+      matchesPerWeekSubtitle: 'Bar color: green ≥ 1 match/week, orange < 1 match/week. Reference line at 1.',
+      matchesLabel: 'Matches',
+      weeksLabel: 'Weeks',
+      rateLabel: 'Matches/week'
+    }
   }},
   no: { translation: {
     appTitle: 'Lagstyring',
@@ -52,7 +71,20 @@ const resources = {
       },
       summaryTitle: 'Importoppsummering',
       players: 'Spillere', events: 'Arrangementer', matches: 'Kamper', trainings: 'Treninger', firstEventDate: 'Første dato', lastEventDate: 'Siste dato',
-      confirmTypes: 'Bekreft typer', training: 'Trening', match: 'Kamp', discard: 'Forkast'
+      confirmTypes: 'Bekreft typer', training: 'Trening', match: 'Kamp', discard: 'Forkast',
+      clarifyModal: {
+        title: 'Klassifiser importerte arrangementer',
+        intro: 'Velg hvilke identifiserte lagnavn som skal gjøre et arrangement til kamp. Alle navn som inneholder "trening" er allerede trening. Du kan også forkaste arrangementer du ikke ønsker.',
+        detectedTeams: 'Oppdagede lag',
+        teamMatchHint: 'Huk av lag som deltar i kamper',
+        chooseType: 'Velg type',
+        markMatch: 'Sett som kamp',
+        markTraining: 'Sett som trening',
+        markDiscard: 'Forkast',
+        applySelections: 'Bruk valg',
+        cancel: 'Avbryt'
+      },
+      columns: { trainings: 'Treninger', matches: 'Kamper', discarded: 'Forkastet' }
     },
     playersPage: {
       searchPlaceholder: 'Søk spillere',
@@ -68,7 +100,13 @@ const resources = {
     teamsPage: {
       generationTitle: 'Lag', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', regenerateAgain: 'Generer på nytt', confirmTitle: 'Generer på nytt?', confirmBody: 'Dette vil forkaste nåværende laginndeling og generere nye lag. Fortsette?', confirmCancel: 'Avbryt', confirmOk: 'Generer', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
     },
-    reportsPage: { placeholder: 'Rapporter og PDF-eksport kommer.' }
+    reportsPage: { placeholder: 'Rapporter og PDF-eksport kommer.',
+      matchesPerWeekTitle: 'Kamper per uke per spiller',
+      matchesPerWeekSubtitle: 'Farge: grønn ≥ 1 kamp/uke, oransje < 1 kamp/uke. Referanselinje på 1.',
+      matchesLabel: 'Kamper',
+      weeksLabel: 'Uker',
+      rateLabel: 'Kamper/uke'
+    }
   }}
 };
 

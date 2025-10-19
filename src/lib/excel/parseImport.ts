@@ -34,16 +34,14 @@ export async function parseImport(file: File): Promise<ImportResult> {
     const label = labelCell?.toString();
     if (!label) continue;
     const lower = label.toLowerCase();
-    let type: 'training' | 'match';
+    // New rule: Only auto-classify explicit training events; all others require user confirmation.
+    // We provisionally mark them as 'training' so they don't inflate match counts prematurely.
+    let type: 'training' | 'match' = 'training';
     let needsTypeConfirmation = false;
     if (/trening/.test(lower)) {
       type = 'training';
-    } else if (/(kamp|match|game)/.test(lower)) {
-      type = 'match';
     } else {
-      // Default to match but require confirmation from user
-      type = 'match';
-      needsTypeConfirmation = true;
+      needsTypeConfirmation = true; // user must choose: training, match, or discard
     }
     // Determine date: first preference -> headerRow cell (row 1). Fallback -> parse from label text.
     const dateCell = headerRow.getCell(col).value as any;
@@ -110,7 +108,7 @@ export async function parseImport(file: File): Promise<ImportResult> {
   attendance.forEach(a => {
     if (a.status !== 'attended') return;
     const ev = eventById[a.eventId];
-    if (!ev) return;
+    if (!ev || ev.needsTypeConfirmation) return; // exclude ambiguous until user decides
     if (!attendedByPlayer[a.playerId]) attendedByPlayer[a.playerId] = { matchAtt:0, trainingAtt:0 };
     if (ev.type === 'match') attendedByPlayer[a.playerId].matchAtt++;
     else attendedByPlayer[a.playerId].trainingAtt++;

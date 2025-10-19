@@ -230,6 +230,8 @@ interface PlayerDetailsDialogProps {
 
 function PlayerDetailsDialog({ open, onClose, playerId, players, events, attendance }: PlayerDetailsDialogProps) {
   const { t } = useTranslation();
+  const [trainingFilter, setTrainingFilter] = useState<'all'|'attended'|'absent'>('all');
+  const [matchFilter, setMatchFilter] = useState<'all'|'attended'|'absent'>('all');
   const player = players.find((p: Player) => p.id === playerId) || null;
   const eventById: Record<string, Event> = useMemo(() => Object.fromEntries(events.map((e: Event) => [e.id, e])), [events]);
   const playerAttendance = useMemo(() => attendance.filter((a: AttendanceRecord) => a.playerId === playerId), [attendance, playerId]);
@@ -250,8 +252,8 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
   const absentCount = absentEvents.length;
   const attendancePct = invitedCount ? ((attendedCount / invitedCount) * 100).toFixed(1) : '0.0';
 
-  const attendedTrainings = attendedEvents.filter((e: Event) => e.type === 'training');
-  const attendedMatches = attendedEvents.filter((e: Event) => e.type === 'match');
+  const trainingsAll = invitedEvents.filter((e: Event) => e.type === 'training');
+  const matchesAll = invitedEvents.filter((e: Event) => e.type === 'match');
   // Sort lists chronologically by date (ISO strings) leaving undated events at the end
   const sortByDate = (list: Event[]) => {
     return [...list].sort((a,b) => {
@@ -261,8 +263,8 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
       return a.date.localeCompare(b.date);
     });
   };
-  const trainingsSorted = sortByDate(attendedTrainings);
-  const matchesSorted = sortByDate(attendedMatches);
+  const trainingsSorted = sortByDate(trainingsAll);
+  const matchesSorted = sortByDate(matchesAll);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -279,24 +281,70 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
             </Box>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <Box flex={1}>
-                <Typography variant="subtitle1">{t('playersPage.playerDetails.trainingsAttended')} ({attendedTrainings.length})</Typography>
-                <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
-                  {trainingsSorted.map(ev => (
-                    <ListItem key={ev.id}>
-                      <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
-                    </ListItem>
-                  ))}
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb:1 }}>
+                  <Typography variant="subtitle1">{t('playersPage.playerDetails.trainingsAttended')} ({trainingsSorted.length})</Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAll')} color={trainingFilter==='all'?'primary':'default'} onClick={()=>setTrainingFilter('all')} />
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAttended')} color={trainingFilter==='attended'?'primary':'default'} onClick={()=>setTrainingFilter('attended')} />
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAbsent')} color={trainingFilter==='absent'?'primary':'default'} onClick={()=>setTrainingFilter('absent')} />
+                  </Stack>
+                </Stack>
+                <List dense sx={{ maxHeight: 420, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
+                  {trainingsSorted.filter(ev => {
+                    const attRec = playerAttendance.find(a => a.eventId === ev.id);
+                    const status = attRec?.status === 'attended' ? 'attended' : attRec?.status === 'absent' ? 'absent' : 'unknown';
+                    if (trainingFilter==='all') return true;
+                    if (trainingFilter==='attended') return status==='attended';
+                    if (trainingFilter==='absent') return status==='absent';
+                    return true;
+                  }).map(ev => {
+                    const attRec = playerAttendance.find(a => a.eventId === ev.id);
+                    const status = attRec?.status === 'attended' ? 'attended' : attRec?.status === 'absent' ? 'absent' : 'unknown';
+                    return (
+                      <ListItem key={ev.id}>
+                        <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
+                        <Box sx={{ ml:2 }}>
+                          {status === 'attended' && <Chip size="small" color="success" label={t('playersPage.playerDetails.attended')} />}
+                          {status === 'absent' && <Chip size="small" color="error" label={t('playersPage.playerDetails.absent')} />}
+                          {status === 'unknown' && <Chip size="small" variant="outlined" label="?" />}
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
                   {trainingsSorted.length === 0 && <ListItem><ListItemText primary={t('playersPage.playerDetails.noTrainings')} /></ListItem>}
                 </List>
               </Box>
               <Box flex={1}>
-                <Typography variant="subtitle1">{t('playersPage.playerDetails.matchesAttended')} ({attendedMatches.length})</Typography>
-                <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
-                  {matchesSorted.map(ev => (
-                    <ListItem key={ev.id}>
-                      <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
-                    </ListItem>
-                  ))}
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb:1 }}>
+                  <Typography variant="subtitle1">{t('playersPage.playerDetails.matchesAttended')} ({matchesSorted.length})</Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAll')} color={matchFilter==='all'?'primary':'default'} onClick={()=>setMatchFilter('all')} />
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAttended')} color={matchFilter==='attended'?'primary':'default'} onClick={()=>setMatchFilter('attended')} />
+                    <Chip size="small" label={t('playersPage.playerDetails.filterAbsent')} color={matchFilter==='absent'?'primary':'default'} onClick={()=>setMatchFilter('absent')} />
+                  </Stack>
+                </Stack>
+                <List dense sx={{ maxHeight: 420, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
+                  {matchesSorted.filter(ev => {
+                    const attRec = playerAttendance.find(a => a.eventId === ev.id);
+                    const status = attRec?.status === 'attended' ? 'attended' : attRec?.status === 'absent' ? 'absent' : 'unknown';
+                    if (matchFilter==='all') return true;
+                    if (matchFilter==='attended') return status==='attended';
+                    if (matchFilter==='absent') return status==='absent';
+                    return true;
+                  }).map(ev => {
+                    const attRec = playerAttendance.find(a => a.eventId === ev.id);
+                    const status = attRec?.status === 'attended' ? 'attended' : attRec?.status === 'absent' ? 'absent' : 'unknown';
+                    return (
+                      <ListItem key={ev.id}>
+                        <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
+                        <Box sx={{ ml:2 }}>
+                          {status === 'attended' && <Chip size="small" color="success" label={t('playersPage.playerDetails.attended')} />}
+                          {status === 'absent' && <Chip size="small" color="error" label={t('playersPage.playerDetails.absent')} />}
+                          {status === 'unknown' && <Chip size="small" variant="outlined" label="?" />}
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
                   {matchesSorted.length === 0 && <ListItem><ListItemText primary={t('playersPage.playerDetails.noMatches')} /></ListItem>}
                 </List>
               </Box>

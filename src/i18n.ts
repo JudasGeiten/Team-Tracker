@@ -40,7 +40,7 @@ const resources = {
       details: 'Details', removeConfirm: 'Remove player {{name}}? This cannot be undone.',
       groupsDialog: { title: 'Groups', newGroup: 'New group', renameGroup: 'Rename group', add: 'Add', save: 'Save', cancel: 'Cancel', noneYet: 'No groups yet.' },
       playerDetails: {
-        title: 'Player Details', summary: 'Summary', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendance: 'Attendance', trainingsAttended: 'Trainings Attended', matchesAttended: 'Matches Attended', noTrainings: 'No trainings attended', noMatches: 'No matches attended', close: 'Close'
+        title: 'Player Details', summary: 'Summary', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendance: 'Attendance', trainingsAttended: 'Trainings Attended', matchesAttended: 'Matches Attended', trainingsAbsent: 'Trainings Absent', matchesAbsent: 'Matches Absent', noTrainings: 'No trainings attended', noMatches: 'No matches attended', noTrainingsAbsent: 'No trainings missed', noMatchesAbsent: 'No matches missed', filterAll: 'All', filterAttended: 'Attended', filterAbsent: 'Absent', close: 'Close'
       },
       noPlayers: 'No players'
     },
@@ -93,7 +93,7 @@ const resources = {
       details: 'Detaljer', removeConfirm: 'Fjern spiller {{name}}? Dette kan ikke angres.',
       groupsDialog: { title: 'Grupper', newGroup: 'Ny gruppe', renameGroup: 'Endre navn', add: 'Legg til', save: 'Lagre', cancel: 'Avbryt', noneYet: 'Ingen grupper ennå.' },
       playerDetails: {
-        title: 'Spillerdetaljer', summary: 'Oppsummering', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendance: 'Oppmøte', trainingsAttended: 'Treninger (møtt)', matchesAttended: 'Kamper (møtt)', noTrainings: 'Ingen treninger møtt', noMatches: 'Ingen kamper møtt', close: 'Lukk'
+        title: 'Spillerdetaljer', summary: 'Oppsummering', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendance: 'Oppmøte', trainingsAttended: 'Treninger', matchesAttended: 'Kamper', trainingsAbsent: 'Treninger (fravær)', matchesAbsent: 'Kamper (fravær)', noTrainings: 'Ingen treninger', noMatches: 'Ingen kamper', noTrainingsAbsent: 'Ingen treninger fravær', noMatchesAbsent: 'Ingen kamper fravær', filterAll: 'Alle', filterAttended: 'Møtt', filterAbsent: 'Fravær', close: 'Lukk'
       },
       noPlayers: 'Ingen spillere'
     },

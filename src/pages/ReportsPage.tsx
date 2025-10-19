@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+
 export default function ReportsPage() {
-  return <div>Reports & PDF export UI to be implemented.</div>;
+  const { t } = useTranslation();
+  return <div>{t('reportsPage.placeholder')}</div>;
 }

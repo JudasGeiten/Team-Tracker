@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
 import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Toolbar, List, ListItem, ListItemText, TextField, Select, MenuItem } from '@mui/material';
 import { Player, Event, AttendanceRecord } from '../types/domain';
@@ -13,6 +14,7 @@ export default function PlayersPage() {
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p: any) => {
@@ -32,23 +34,23 @@ export default function PlayersPage() {
     <Stack spacing={2}>
       <Toolbar disableGutters sx={{ gap:2, flexWrap:'wrap' }}>
         <Select size="small" value={filterGroup} onChange={e=>setFilterGroup(e.target.value as any)}>
-          <MenuItem value="ALL">All Groups</MenuItem>
+          <MenuItem value="ALL">{t('playersPage.manageGroups')}</MenuItem>
           {groups.map((g:any)=><MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
         </Select>
-        <TextField size="small" placeholder="Search players" value={search} onChange={e=>setSearch(e.target.value)} />
-        <Button variant="outlined" onClick={openManageGroups}>Manage Groups</Button>
+        <TextField size="small" placeholder={t('playersPage.searchPlaceholder')} value={search} onChange={e=>setSearch(e.target.value)} />
+        <Button variant="outlined" onClick={openManageGroups}>{t('playersPage.manageGroups')}</Button>
       </Toolbar>
       <Paper sx={{ width: '100%', overflow: 'auto' }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Group</TableCell>
-              <TableCell align="right">Invited</TableCell>
-              <TableCell align="right">Attended</TableCell>
-              <TableCell align="right">Absent</TableCell>
-              <TableCell align="right">Attendance %</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t('playersPage.table.name')}</TableCell>
+              <TableCell>{t('playersPage.table.group')}</TableCell>
+              <TableCell align="right">{t('playersPage.table.invited')}</TableCell>
+              <TableCell align="right">{t('playersPage.table.attended')}</TableCell>
+              <TableCell align="right">{t('playersPage.table.absent')}</TableCell>
+              <TableCell align="right">{t('playersPage.table.attendancePct')}</TableCell>
+              <TableCell align="right">{t('playersPage.table.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -72,9 +74,9 @@ export default function PlayersPage() {
                   <TableCell align="right">{pct}%</TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Button size="small" onClick={()=>setDetailsPlayerId(p.id)}>Details</Button>
+                        <Button size="small" onClick={()=>setDetailsPlayerId(p.id)}>{t('playersPage.details')}</Button>
                         <IconButton size="small" color="error" onClick={()=>{
-                          if (confirm(`Remove player ${p.name}? This cannot be undone.`)) removePlayer(p.id);
+                          if (confirm(t('playersPage.removeConfirm', { name: p.name }))) removePlayer(p.id);
                         }}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -84,7 +86,7 @@ export default function PlayersPage() {
               );
             })}
             {filteredPlayers.length === 0 && (
-              <TableRow><TableCell colSpan={7}><Typography variant="body2" color="text.secondary">No players</Typography></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7}><Typography variant="body2" color="text.secondary">{t('playersPage.noPlayers')}</Typography></TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -94,32 +96,32 @@ export default function PlayersPage() {
 
       {/* Group Management Dialog */}
       <Dialog open={groupDialogOpen} onClose={closeManageGroups} fullWidth maxWidth="sm">
-        <DialogTitle>Groups</DialogTitle>
+        <DialogTitle>{t('playersPage.groupsDialog.title')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1}>
-              <TextField label={editingGroupId ? 'Rename group' : 'New group'} size="small" fullWidth value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+              <TextField label={editingGroupId ? t('playersPage.groupsDialog.renameGroup') : t('playersPage.groupsDialog.newGroup')} size="small" fullWidth value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
               {editingGroupId ? (
-                <Button onClick={saveRename} variant="contained">Save</Button>
+                <Button onClick={saveRename} variant="contained">{t('playersPage.groupsDialog.save')}</Button>
               ) : (
-                <Button onClick={handleAddGroup} variant="contained">Add</Button>
+                <Button onClick={handleAddGroup} variant="contained">{t('playersPage.groupsDialog.add')}</Button>
               )}
-              {editingGroupId && <Button onClick={()=>{ setEditingGroupId(null); setNewGroupName(''); }}>Cancel</Button>}
+              {editingGroupId && <Button onClick={()=>{ setEditingGroupId(null); setNewGroupName(''); }}>{t('playersPage.groupsDialog.cancel')}</Button>}
             </Stack>
             <Box>
               {groups.map((g:any) => (
                 <Stack key={g.id} direction="row" alignItems="center" spacing={1} sx={{ mb:1 }}>
                   <Box sx={{ flexGrow:1 }}>{g.name}</Box>
-                  <Button size="small" onClick={() => handleRenameGroup(g.id, g.name)}>Rename</Button>
+                  <Button size="small" onClick={() => handleRenameGroup(g.id, g.name)}>{t('playersPage.groupsDialog.renameGroup')}</Button>
                   <IconButton size="small" onClick={() => removeGroup(g.id)}><DeleteIcon fontSize="small" /></IconButton>
                 </Stack>
               ))}
-              {groups.length === 0 && <Typography variant="body2" color="text.secondary">No groups yet.</Typography>}
+              {groups.length === 0 && <Typography variant="body2" color="text.secondary">{t('playersPage.groupsDialog.noneYet')}</Typography>}
             </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeManageGroups}>Close</Button>
+          <Button onClick={closeManageGroups}>{t('playersPage.playerDetails.close')}</Button>
         </DialogActions>
       </Dialog>
 
@@ -148,6 +150,7 @@ interface PlayerDetailsDialogProps {
 }
 
 function PlayerDetailsDialog({ open, onClose, playerId, players, events, attendance }: PlayerDetailsDialogProps) {
+  const { t } = useTranslation();
   const player = players.find((p: Player) => p.id === playerId) || null;
   const eventById: Record<string, Event> = useMemo(() => Object.fromEntries(events.map((e: Event) => [e.id, e])), [events]);
   const playerAttendance = useMemo(() => attendance.filter((a: AttendanceRecord) => a.playerId === playerId), [attendance, playerId]);
@@ -184,38 +187,38 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>Player Details{player ? ` – ${player.name}` : ''}</DialogTitle>
+      <DialogTitle>{t('playersPage.playerDetails.title')}{player ? ` – ${player.name}` : ''}</DialogTitle>
       <DialogContent dividers>
         {!player && <Typography variant="body2" color="text.secondary">No player selected.</Typography>}
         {player && (
           <Stack spacing={3}>
             <Box>
-              <Typography variant="subtitle1">Summary</Typography>
+              <Typography variant="subtitle1">{t('playersPage.playerDetails.summary')}</Typography>
               <Typography variant="body2" color="text.secondary">
-                Invited: {invitedCount} | Attended: {attendedCount} | Absent: {absentCount} | Attendance: {attendancePct}%
+                {t('playersPage.playerDetails.invited')}: {invitedCount} | {t('playersPage.playerDetails.attended')}: {attendedCount} | {t('playersPage.playerDetails.absent')}: {absentCount} | {t('playersPage.playerDetails.attendance')}: {attendancePct}%
               </Typography>
             </Box>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <Box flex={1}>
-                <Typography variant="subtitle1">Trainings Attended ({attendedTrainings.length})</Typography>
+                <Typography variant="subtitle1">{t('playersPage.playerDetails.trainingsAttended')} ({attendedTrainings.length})</Typography>
                 <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
                   {trainingsSorted.map(ev => (
                     <ListItem key={ev.id}>
                       <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
                     </ListItem>
                   ))}
-                  {trainingsSorted.length === 0 && <ListItem><ListItemText primary="No trainings attended" /></ListItem>}
+                  {trainingsSorted.length === 0 && <ListItem><ListItemText primary={t('playersPage.playerDetails.noTrainings')} /></ListItem>}
                 </List>
               </Box>
               <Box flex={1}>
-                <Typography variant="subtitle1">Matches Attended ({attendedMatches.length})</Typography>
+                <Typography variant="subtitle1">{t('playersPage.playerDetails.matchesAttended')} ({attendedMatches.length})</Typography>
                 <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
                   {matchesSorted.map(ev => (
                     <ListItem key={ev.id}>
                       <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
                     </ListItem>
                   ))}
-                  {matchesSorted.length === 0 && <ListItem><ListItemText primary="No matches attended" /></ListItem>}
+                  {matchesSorted.length === 0 && <ListItem><ListItemText primary={t('playersPage.playerDetails.noMatches')} /></ListItem>}
                 </List>
               </Box>
             </Stack>
@@ -223,7 +226,7 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('playersPage.playerDetails.close')}</Button>
       </DialogActions>
     </Dialog>
   );

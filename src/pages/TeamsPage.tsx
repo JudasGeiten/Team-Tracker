@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
 import { useTeamsStore } from '../state/useTeamsStore';
 import { generateTeams } from '../lib/team/generateTeams';
@@ -26,6 +27,7 @@ export default function TeamsPage() {
   const [teamCount, setTeamCount] = useState(2);
   const [weighting, setWeighting] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const eligiblePlayers = players;
 
@@ -46,31 +48,31 @@ export default function TeamsPage() {
   return (
     <Stack spacing={3}>
       <Paper sx={{ p:2 }}>
-        <Typography variant="h6" gutterBottom>Team Generation</Typography>
+  <Typography variant="h6" gutterBottom>{t('teamsPage.generationTitle')}</Typography>
         <Stack spacing={2}>
           {/* Mode selection removed (groups deprecated) */}
 
           <Box>
-            <Typography variant="subtitle2" gutterBottom>Targets</Typography>
+            <Typography variant="subtitle2" gutterBottom>{t('teamsPage.targets')}</Typography>
             <Stack direction={{ xs:'column', sm:'row' }} spacing={2}>
-              <TextField type="number" size="small" label="Team Size" value={teamSize} onChange={e=>setTeamSize(Number(e.target.value))} sx={{ mt:1, width:140 }} />
-              <TextField type="number" size="small" label="Team Count" value={teamCount} onChange={e=>setTeamCount(Number(e.target.value))} sx={{ mt:1, width:140 }} />
+              <TextField type="number" size="small" label={t('teamsPage.teamSize')} value={teamSize} onChange={e=>setTeamSize(Number(e.target.value))} sx={{ mt:1, width:140 }} />
+              <TextField type="number" size="small" label={t('teamsPage.teamCount')} value={teamCount} onChange={e=>setTeamCount(Number(e.target.value))} sx={{ mt:1, width:140 }} />
             </Stack>
-            <Typography variant="caption" color="text.secondary" sx={{ display:'block', mt:1 }}>Capacity = size * count. Overflow players go to the wait list.</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display:'block', mt:1 }}>{t('teamsPage.capacityHint')}</Typography>
           </Box>
 
             <Box display="flex" alignItems="center" gap={1}>
               <Checkbox checked={weighting} onChange={e=>setWeighting(e.target.checked)} />
-              <Typography variant="body2">Fairness weighting (prioritize lower attendance)</Typography>
+              <Typography variant="body2">{t('teamsPage.weightingLabel')}</Typography>
             </Box>
 
           <Box>
-            <Button variant="contained" onClick={handleGenerate}>Generate Teams</Button>
+            <Button variant="contained" onClick={handleGenerate}>{t('teamsPage.generateBtn')}</Button>
             {teams.length > 0 && (
-              <IconButton sx={{ ml:1 }} onClick={handleGenerate} title="Regenerate with same settings"><RefreshIcon /></IconButton>
+              <IconButton sx={{ ml:1 }} onClick={handleGenerate} title={t('teamsPage.regenerate')}><RefreshIcon /></IconButton>
             )}
           </Box>
-          <Typography variant="body2" color="text.secondary">Eligible players: {eligiblePlayers.length}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('teamsPage.eligible')}: {eligiblePlayers.length}</Typography>
           {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </Paper>
@@ -78,8 +80,8 @@ export default function TeamsPage() {
       {teams.length > 0 && (
         <Paper sx={{ p:2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-            <Typography variant="h6" gutterBottom>Generated Teams</Typography>
-            <Button onClick={handleGenerate} size="small" startIcon={<RefreshIcon />}>Regenerate</Button>
+            <Typography variant="h6" gutterBottom>{t('teamsPage.generatedTitle')}</Typography>
+            <Button onClick={handleGenerate} size="small" startIcon={<RefreshIcon />}>{t('teamsPage.regenerate')}</Button>
           </Box>
           <Grid container spacing={2}>
             {teams.map(team => (
@@ -121,7 +123,7 @@ export default function TeamsPage() {
           </Grid>
           {waitList.length > 0 && (
             <Box mt={3}>
-              <Divider sx={{ mb:1 }}>Wait List ({waitList.length})</Divider>
+              <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 {waitList.map((pid: string) => {
                   const pl = players.find((p:any)=>p.id===pid); return <Paper key={pid} variant="outlined" sx={{ px:1, py:0.5 }}><Typography variant="body2">{pl?.name || 'Unknown'}</Typography></Paper>;

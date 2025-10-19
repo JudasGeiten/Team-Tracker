@@ -32,7 +32,7 @@ const resources = {
       noPlayers: 'No players'
     },
     teamsPage: {
-      generationTitle: 'Team Generation', targets: 'Targets', teamSize: 'Team Size', teamCount: 'Team Count', capacityHint: 'Capacity = size * count. Overflow players go to the wait list.', weightingLabel: 'Fairness weighting (prioritize lower attendance)', generateBtn: 'Generate Teams', regenerate: 'Regenerate', eligible: 'Eligible players', generatedTitle: 'Generated Teams', waitList: 'Wait List'
+      generationTitle: 'Team Generation', targets: 'Targets', teamSize: 'Team Size', teamCount: 'Team Count', capacityHint: 'Capacity = size * count. Overflow players go to the wait list.', weightingLabel: 'Fairness weighting (prioritize lower attendance)', generateBtn: 'Generate Teams', regenerate: 'Regenerate', regenerateAgain: 'Regenerate Again', confirmTitle: 'Regenerate Teams?', confirmBody: 'This will discard the current team arrangement and generate new teams. Continue?', confirmCancel: 'Cancel', confirmOk: 'Regenerate', eligible: 'Eligible players', generatedTitle: 'Generated Teams', waitList: 'Wait List'
     },
     reportsPage: { placeholder: 'Reports & PDF export UI to be implemented.' }
   }},
@@ -66,7 +66,7 @@ const resources = {
       noPlayers: 'Ingen spillere'
     },
     teamsPage: {
-      generationTitle: 'Laggenerering', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
+      generationTitle: 'Laggenerering', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', regenerateAgain: 'Generer på nytt', confirmTitle: 'Generer på nytt?', confirmBody: 'Dette vil forkaste nåværende laginndeling og generere nye lag. Fortsette?', confirmCancel: 'Avbryt', confirmOk: 'Generer', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
     },
     reportsPage: { placeholder: 'Rapporter og PDF-eksport kommer.' }
   }}

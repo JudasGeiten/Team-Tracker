@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert } from '@mui/material';
 import { parseImport } from '../lib/excel/parseImport';
@@ -7,6 +9,8 @@ import { usePlayersStore } from '../state/usePlayersStore';
 export default function DashboardPage() {
   const { players, events, attendance, importDebug, loadImport, updateEventType, discardEvent } = usePlayersStore();
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +68,7 @@ export default function DashboardPage() {
         {players.length > 0 && (
           <Box mt={3}>
             <Typography variant="subtitle1" gutterBottom>{t('dashboard.summaryTitle')}</Typography>
-            <Stack direction="row" spacing={4} flexWrap="wrap" alignItems="flex-start">
+            <Stack direction="row" spacing={isMobile ? 2 : 4} flexWrap="wrap" alignItems="flex-start">
               {[
                 { label: t('dashboard.players'), value: players.length },
                 { label: t('dashboard.events'), value: events.length },
@@ -73,7 +77,7 @@ export default function DashboardPage() {
                 { label: t('dashboard.firstEventDate'), value: firstEventDate || '—' },
                 { label: t('dashboard.lastEventDate'), value: lastEventDate || '—' }
               ].map(item => (
-                <Box key={item.label} sx={{ minWidth: 120 }}>
+                <Box key={item.label} sx={{ minWidth: isMobile ? 100 : 140, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</Typography>
                   <Typography variant="subtitle1" fontWeight={600}>{item.value}</Typography>
                 </Box>

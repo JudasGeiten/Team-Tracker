@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
 import { useTeamsStore } from '../state/useTeamsStore';
 import { generateTeams } from '../lib/team/generateTeams';
-import { Box, Paper, Stack, Typography, TextField, Button, Checkbox, Divider, Alert, Grid, IconButton } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Box, Paper, Stack, Typography, TextField, Button, Checkbox, Divider, Alert, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 // Generate a soft pastel color based on a string (group name) for consistent coloring
 function groupColor(seed: string): string {
@@ -21,17 +20,21 @@ function groupColor(seed: string): string {
 
 export default function TeamsPage() {
   const { players, groups } = usePlayersStore() as any;
-  const { teams, setTeams, waitList } = useTeamsStore();
+  const { teams, setTeams, waitList, swapPlayers, renameTeam } = useTeamsStore() as any;
   const mode: 'mixed' = 'mixed';
   const [teamSize, setTeamSize] = useState(8);
   const [teamCount, setTeamCount] = useState(2);
   const [weighting, setWeighting] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]); // up to 2 player IDs
+  const [swapFlashIds, setSwapFlashIds] = useState<string[]>([]);
+  const [regenDialogOpen, setRegenDialogOpen] = useState(false);
   const { t } = useTranslation();
 
   const eligiblePlayers = players;
 
-  function handleGenerate() {
+  function actuallyGenerate() {
     setError(null);
     if (!eligiblePlayers.length) { setError('No eligible players.'); return; }
     if (!teamSize || teamSize < 1) { setError('Team size must be >= 1'); return; }
@@ -45,7 +48,40 @@ export default function TeamsPage() {
     setTeams(result.teams, result.waitList);
   }
 
+  function handleGenerate() {
+    if (teams.length > 0) {
+      setRegenDialogOpen(true);
+    } else {
+      actuallyGenerate();
+    }
+  }
+
+  function toggleSelect(pid: string) {
+    if (!editMode) return;
+    setSelected(prev => {
+      if (prev.includes(pid)) return prev.filter(p => p !== pid);
+      if (prev.length === 2) return [prev[1], pid]; // keep last + new
+      return [...prev, pid];
+    });
+  }
+
+  function performSwapIfReady() {
+    if (selected.length === 2) {
+      const [a,b] = selected;
+      swapPlayers(a,b);
+      setSwapFlashIds([a,b]);
+      setTimeout(()=> setSwapFlashIds([]), 600);
+      setSelected([]);
+    }
+  }
+
+  // trigger swap when second selected added
+  if (selected.length === 2) {
+    performSwapIfReady();
+  }
+
   return (
+    <>
     <Stack spacing={3}>
       <Paper sx={{ p:2 }}>
   <Typography variant="h6" gutterBottom>{t('teamsPage.generationTitle')}</Typography>
@@ -66,10 +102,17 @@ export default function TeamsPage() {
               <Typography variant="body2">{t('teamsPage.weightingLabel')}</Typography>
             </Box>
 
-          <Box>
-            <Button variant="contained" onClick={handleGenerate}>{t('teamsPage.generateBtn')}</Button>
+          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+            <Button variant="contained" onClick={handleGenerate}>
+              {teams.length === 0 ? t('teamsPage.generateBtn') : t('teamsPage.regenerate')}
+            </Button>
             {teams.length > 0 && (
-              <IconButton sx={{ ml:1 }} onClick={handleGenerate} title={t('teamsPage.regenerate')}><RefreshIcon /></IconButton>
+              <Button size="small" variant={editMode ? 'contained':'outlined'} onClick={()=>{ setEditMode(m=>!m); setSelected([]); }}>
+                {editMode ? 'Avslutt redigering' : 'Rediger lag'}
+              </Button>
+            )}
+            {editMode && selected.length === 1 && (
+              <Typography variant="caption" color="text.secondary">Velg en spiller til for å bytte.</Typography>
             )}
           </Box>
           <Typography variant="body2" color="text.secondary">{t('teamsPage.eligible')}: {eligiblePlayers.length}</Typography>
@@ -81,13 +124,24 @@ export default function TeamsPage() {
         <Paper sx={{ p:2 }}>
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
             <Typography variant="h6" gutterBottom>{t('teamsPage.generatedTitle')}</Typography>
-            <Button onClick={handleGenerate} size="small" startIcon={<RefreshIcon />}>{t('teamsPage.regenerate')}</Button>
+            <Button onClick={handleGenerate} size="small">{t('teamsPage.regenerate')}</Button>
           </Box>
           <Grid container spacing={2}>
-            {teams.map(team => (
+            {teams.map((team: { id: string; name: string; playerIds: string[] }) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={team.id}>
                 <Paper variant="outlined" sx={{ p:1 }}>
-                  <Typography variant="subtitle1" gutterBottom>{team.name}</Typography>
+                  {editMode ? (
+                    <TextField
+                      variant="standard"
+                      value={team.name}
+                      onChange={e => renameTeam(team.id, e.target.value)}
+                      onBlur={e => renameTeam(team.id, e.target.value.trim() || team.name)}
+                      inputProps={{ 'aria-label': 'team name', style:{ fontSize:'0.95rem', fontWeight:600 } }}
+                      sx={{ mb:1, width:'100%' }}
+                    />
+                  ) : (
+                    <Typography variant="subtitle1" gutterBottom>{team.name}</Typography>
+                  )}
                   {(() => {
                     // group players by groupId for this team
                     const grouped: Record<string, any[]> = {};
@@ -100,16 +154,35 @@ export default function TeamsPage() {
                     const ordered = Object.entries(grouped).sort((a,b)=> a[0].localeCompare(b[0]));
                     return (
                       <Stack spacing={1}>
-                        {ordered.map(([gid, plist]) => {
+                        {ordered.map(([gid, plist]: [string, any[]]) => {
                           const gName = gid === '__none' ? 'No Group' : (groups.find((g:any)=>g.id===gid)?.name || 'Group');
                           const color = groupColor(gName);
                           return (
                             <Box key={gid} sx={{ background: color, borderRadius:1, px:1, py:0.75 }}>
                               <Typography variant="caption" sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:'.5px', opacity:0.85 }}>{gName}</Typography>
                               <Stack component="ul" sx={{ listStyle:'none', p:0, m:0, mt:0.5 }} spacing={0.25}>
-                                {plist.map((pl: any) => (
-                                  <li key={pl.id}><Typography variant="body2">{pl.name}</Typography></li>
-                                ))}
+                                {plist.map((pl: any) => {
+                                  const isSel = selected.includes(pl.id);
+                                  const flash = swapFlashIds.includes(pl.id);
+                                  return (
+                                    <li key={pl.id}>
+                                      <Box
+                                        onClick={()=>toggleSelect(pl.id)}
+                                        sx={{
+                                          cursor: editMode ? 'pointer':'default',
+                                          px:0.5,
+                                          py:0.25,
+                                          borderRadius:0.5,
+                                          transition:'background .25s, transform .25s',
+                                          background: isSel ? 'rgba(25,118,210,0.25)' : flash ? 'rgba(76,175,80,0.35)' : 'transparent',
+                                          transform: flash ? 'scale(1.05)' : 'none'
+                                        }}
+                                      >
+                                        <Typography variant="body2" component="span">{pl.name}</Typography>
+                                      </Box>
+                                    </li>
+                                  );
+                                })}
                               </Stack>
                             </Box>
                           );
@@ -126,7 +199,24 @@ export default function TeamsPage() {
               <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 {waitList.map((pid: string) => {
-                  const pl = players.find((p:any)=>p.id===pid); return <Paper key={pid} variant="outlined" sx={{ px:1, py:0.5 }}><Typography variant="body2">{pl?.name || 'Unknown'}</Typography></Paper>;
+                  const pl = players.find((p:any)=>p.id===pid);
+                  if (!pl) return null;
+                  const isSel = selected.includes(pid);
+                  const flash = swapFlashIds.includes(pid);
+                  return (
+                    <Paper
+                      key={pid}
+                      onClick={()=>toggleSelect(pid)}
+                      variant="outlined"
+                      sx={{ px:1, py:0.5, cursor: editMode ? 'pointer':'default',
+                        background: isSel ? 'rgba(25,118,210,0.25)' : flash ? 'rgba(76,175,80,0.35)' : 'transparent',
+                        transition:'background .25s, transform .25s',
+                        transform: flash ? 'scale(1.05)' : 'none'
+                      }}
+                    >
+                      <Typography variant="body2">{pl.name}</Typography>
+                    </Paper>
+                  );
                 })}
               </Stack>
             </Box>
@@ -134,5 +224,16 @@ export default function TeamsPage() {
         </Paper>
       )}
     </Stack>
+    <Dialog open={regenDialogOpen} onClose={()=>setRegenDialogOpen(false)}>
+      <DialogTitle>{t('teamsPage.confirmTitle')}</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2">{t('teamsPage.confirmBody')}</Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=>setRegenDialogOpen(false)}>{t('teamsPage.confirmCancel')}</Button>
+        <Button variant="contained" color="warning" onClick={()=>{ setRegenDialogOpen(false); actuallyGenerate(); }}>{t('teamsPage.confirmOk')}</Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

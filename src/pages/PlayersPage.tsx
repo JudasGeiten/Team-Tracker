@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
-import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Toolbar, List, ListItem, ListItemText, TextField, Select, MenuItem } from '@mui/material';
+import { Box, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Toolbar, List, ListItem, ListItemText, TextField, Select, MenuItem, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { Player, Event, AttendanceRecord } from '../types/domain';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
@@ -15,6 +16,8 @@ export default function PlayersPage() {
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const filteredPlayers = useMemo(() => {
     return players.filter((p: any) => {
@@ -40,6 +43,7 @@ export default function PlayersPage() {
         <TextField size="small" placeholder={t('playersPage.searchPlaceholder')} value={search} onChange={e=>setSearch(e.target.value)} />
         <Button variant="outlined" onClick={openManageGroups}>{t('playersPage.manageGroups')}</Button>
       </Toolbar>
+      {!isMobile && (
       <Paper sx={{ width: '100%', overflow: 'auto' }}>
         <Table size="small" stickyHeader>
           <TableHead>
@@ -48,8 +52,8 @@ export default function PlayersPage() {
               <TableCell>{t('playersPage.table.group')}</TableCell>
               <TableCell align="right">{t('playersPage.table.invited')}</TableCell>
               <TableCell align="right">{t('playersPage.table.attended')}</TableCell>
-              <TableCell align="right">{t('playersPage.table.absent')}</TableCell>
-              <TableCell align="right">{t('playersPage.table.attendancePct')}</TableCell>
+              {!isMobile && <TableCell align="right">{t('playersPage.table.absent')}</TableCell>}
+              {!isMobile && <TableCell align="right">{t('playersPage.table.attendancePct')}</TableCell>}
               <TableCell align="right">{t('playersPage.table.actions')}</TableCell>
             </TableRow>
           </TableHead>
@@ -70,8 +74,8 @@ export default function PlayersPage() {
                   </TableCell>
                   <TableCell align="right">{invited}</TableCell>
                   <TableCell align="right">{attended}</TableCell>
-                  <TableCell align="right">{absent}</TableCell>
-                  <TableCell align="right">{pct}%</TableCell>
+                  {!isMobile && <TableCell align="right">{absent}</TableCell>}
+                  {!isMobile && <TableCell align="right">{pct}%</TableCell>}
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} justifyContent="flex-end">
                         <Button size="small" onClick={()=>setDetailsPlayerId(p.id)}>{t('playersPage.details')}</Button>
@@ -91,6 +95,41 @@ export default function PlayersPage() {
           </TableBody>
         </Table>
       </Paper>
+      )}
+
+      {isMobile && (
+        <Stack spacing={1}>
+          {filteredPlayers.map((p: Player) => {
+            const invited = p.invitedTotal || 0;
+            const attended = p.attendedTotal || 0;
+            const absent = invited - attended;
+            const pct = invited ? ((attended / invited) * 100).toFixed(1) : '0.0';
+            return (
+              <Paper key={p.id} variant="outlined" sx={{ p:1 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                  <Box>
+                    <Typography variant="subtitle2" noWrap>{p.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t('playersPage.table.invited')}: {invited} · {t('playersPage.table.attended')}: {attended} · {t('playersPage.table.absent')}: {absent} · {t('playersPage.table.attendancePct')}: {pct}%
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <Select size="small" value={p.groupId || ''} displayEmpty onChange={e => assignGroup(p.id, e.target.value || null)}>
+                      <MenuItem value=""><em>—</em></MenuItem>
+                      {groups.map((g:any)=><MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
+                    </Select>
+                    <Button size="small" onClick={()=>setDetailsPlayerId(p.id)}>{t('playersPage.details')}</Button>
+                    <IconButton size="small" color="error" onClick={()=>{ if (confirm(t('playersPage.removeConfirm', { name: p.name }))) removePlayer(p.id); }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </Paper>
+            );
+          })}
+          {filteredPlayers.length === 0 && <Typography variant="body2" color="text.secondary">{t('playersPage.noPlayers')}</Typography>}
+        </Stack>
+      )}
 
       
 

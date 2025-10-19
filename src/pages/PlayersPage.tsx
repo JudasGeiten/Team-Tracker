@@ -170,6 +170,17 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
 
   const attendedTrainings = attendedEvents.filter((e: Event) => e.type === 'training');
   const attendedMatches = attendedEvents.filter((e: Event) => e.type === 'match');
+  // Sort lists chronologically by date (ISO strings) leaving undated events at the end
+  const sortByDate = (list: Event[]) => {
+    return [...list].sort((a,b) => {
+      if (!a.date && !b.date) return a.name.localeCompare(b.name);
+      if (!a.date) return 1; // a without date goes after b
+      if (!b.date) return -1; // b without date goes after a
+      return a.date.localeCompare(b.date);
+    });
+  };
+  const trainingsSorted = sortByDate(attendedTrainings);
+  const matchesSorted = sortByDate(attendedMatches);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -188,23 +199,23 @@ function PlayerDetailsDialog({ open, onClose, playerId, players, events, attenda
               <Box flex={1}>
                 <Typography variant="subtitle1">Trainings Attended ({attendedTrainings.length})</Typography>
                 <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
-                  {attendedTrainings.map(ev => (
+                  {trainingsSorted.map(ev => (
                     <ListItem key={ev.id}>
                       <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
                     </ListItem>
                   ))}
-                  {attendedTrainings.length === 0 && <ListItem><ListItemText primary="No trainings attended" /></ListItem>}
+                  {trainingsSorted.length === 0 && <ListItem><ListItemText primary="No trainings attended" /></ListItem>}
                 </List>
               </Box>
               <Box flex={1}>
                 <Typography variant="subtitle1">Matches Attended ({attendedMatches.length})</Typography>
                 <List dense sx={{ maxHeight: 300, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius:1 }}>
-                  {attendedMatches.map(ev => (
+                  {matchesSorted.map(ev => (
                     <ListItem key={ev.id}>
                       <ListItemText primary={ev.name} secondary={ev.date ? ev.date.split('T')[0] : ''} />
                     </ListItem>
                   ))}
-                  {attendedMatches.length === 0 && <ListItem><ListItemText primary="No matches attended" /></ListItem>}
+                  {matchesSorted.length === 0 && <ListItem><ListItemText primary="No matches attended" /></ListItem>}
                 </List>
               </Box>
             </Stack>

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { usePlayersStore } from '../state/usePlayersStore';
 import { useTeamsStore } from '../state/useTeamsStore';
 import { generateTeams } from '../lib/team/generateTeams';
-import { Box, Paper, Stack, Typography, TextField, Button, Checkbox, Divider, Alert, Grid, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Box, Paper, Stack, Typography, TextField, Button, Divider, Alert, Grid, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@mui/material';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 // Generate a soft pastel color based on a string (group name) for consistent coloring
 function groupColor(seed: string): string {
@@ -24,11 +25,12 @@ export default function TeamsPage() {
   const mode: 'mixed' = 'mixed';
   const [teamSize, setTeamSize] = useState(8);
   const [teamCount, setTeamCount] = useState(2);
-  const [weighting, setWeighting] = useState(true);
+  // Fairness weighting temporarily removed
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]); // up to 2 player IDs
-  const [swapFlashIds, setSwapFlashIds] = useState<string[]>([]);
+  // Drag state
+  const [dragPlayerId, setDragPlayerId] = useState<string | null>(null);
+  const [dragOriginTeamId, setDragOriginTeamId] = useState<string | null>(null);
   const [regenDialogOpen, setRegenDialogOpen] = useState(false);
   const { t } = useTranslation();
 
@@ -64,7 +66,7 @@ export default function TeamsPage() {
     const result = generateTeams({
       players: pool,
       mode: 'mixed',
-      weighting,
+  weighting: false,
       target: { teamSize, teamCount }
     });
     setTeams(result.teams, result.waitList);
@@ -78,28 +80,28 @@ export default function TeamsPage() {
     }
   }
 
-  function toggleSelect(pid: string) {
-    if (!editMode) return;
-    setSelected(prev => {
-      if (prev.includes(pid)) return prev.filter(p => p !== pid);
-      if (prev.length === 2) return [prev[1], pid]; // keep last + new
-      return [...prev, pid];
-    });
-  }
-
-  function performSwapIfReady() {
-    if (selected.length === 2) {
-      const [a,b] = selected;
-      swapPlayers(a,b);
-      setSwapFlashIds([a,b]);
-      setTimeout(()=> setSwapFlashIds([]), 600);
-      setSelected([]);
+  function movePlayer(pid: string, targetTeamId: string | 'wait') {
+    if (!pid) return;
+    const currentTeams = teams.map((t:any)=> ({ ...t, playerIds: t.playerIds.filter((id:string)=> id !== pid) }));
+    let newWait = waitList.filter((id:string)=> id !== pid);
+    if (targetTeamId === 'wait') {
+      newWait = [...newWait, pid];
+    } else {
+      const idx = currentTeams.findIndex((t:any)=> t.id === targetTeamId);
+      if (idx >= 0) currentTeams[idx].playerIds = [...currentTeams[idx].playerIds, pid];
     }
+    setTeams(currentTeams, newWait);
   }
 
-  // trigger swap when second selected added
-  if (selected.length === 2) {
-    performSwapIfReady();
+  function onDragStart(e: React.DragEvent, pid: string, originTeamId: string | 'wait') {
+    if (!editMode) return;
+    setDragPlayerId(pid);
+    setDragOriginTeamId(originTeamId === 'wait' ? null : originTeamId);
+    e.dataTransfer.setData('text/player-id', pid);
+  }
+  function onDragEnd() {
+    setDragPlayerId(null);
+    setDragOriginTeamId(null);
   }
 
   return (
@@ -119,22 +121,16 @@ export default function TeamsPage() {
             <Typography variant="caption" color="text.secondary" sx={{ display:'block', mt:1 }}>{t('teamsPage.capacityHint')}</Typography>
           </Box>
 
-            <Box display="flex" alignItems="center" gap={1}>
-              <Checkbox checked={weighting} onChange={e=>setWeighting(e.target.checked)} />
-              <Typography variant="body2">{t('teamsPage.weightingLabel')}</Typography>
-            </Box>
+            {/* Fairness weighting removed */}
 
           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
             <Button variant="contained" onClick={handleGenerate}>
               {teams.length === 0 ? t('teamsPage.generateBtn') : t('teamsPage.regenerate')}
             </Button>
             {teams.length > 0 && (
-              <Button size="small" variant={editMode ? 'contained':'outlined'} onClick={()=>{ setEditMode(m=>!m); setSelected([]); }}>
+              <Button size="small" variant={editMode ? 'contained':'outlined'} onClick={()=> setEditMode(m=>!m)}>
                 {editMode ? 'Avslutt redigering' : 'Rediger lag'}
               </Button>
-            )}
-            {editMode && selected.length === 1 && (
-              <Typography variant="caption" color="text.secondary">Velg en spiller til for å bytte.</Typography>
             )}
           </Box>
           <Typography variant="body2" color="text.secondary">{t('teamsPage.eligible')}: {eligiblePlayers.length}{importMode==='match' ? ` (match mode)` : ''}</Typography>
@@ -151,7 +147,12 @@ export default function TeamsPage() {
           <Grid container spacing={2}>
             {teams.map((team: { id: string; name: string; playerIds: string[] }) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={team.id}>
-                <Paper variant="outlined" sx={{ p:1 }}>
+                <Paper
+                  variant="outlined"
+                  sx={{ p:1, borderColor: dragPlayerId && dragOriginTeamId !== team.id ? 'primary.light' : undefined }}
+                  onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
+                  onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid, team.id); }}
+                >
                   {editMode ? (
                     <TextField
                       variant="standard"
@@ -162,7 +163,14 @@ export default function TeamsPage() {
                       sx={{ mb:1, width:'100%' }}
                     />
                   ) : (
-                    <Typography variant="subtitle1" gutterBottom>{team.name}</Typography>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                      <Typography variant="subtitle1" gutterBottom sx={{ fontWeight:600 }}>{team.name} ({team.playerIds.length})</Typography>
+                      {team.playerIds.length > teamSize && (
+                        <Tooltip title={`Team exceeds requested size (${teamSize}).`}>
+                          <WarningAmberIcon color="warning" fontSize="small" />
+                        </Tooltip>
+                      )}
+                    </Box>
                   )}
                   {(() => {
                     // group players by groupId for this team
@@ -184,20 +192,19 @@ export default function TeamsPage() {
                               <Typography variant="caption" sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:'.5px', opacity:0.85 }}>{gName}</Typography>
                               <Stack component="ul" sx={{ listStyle:'none', p:0, m:0, mt:0.5 }} spacing={0.25}>
                                 {plist.map((pl: any) => {
-                                  const isSel = selected.includes(pl.id);
-                                  const flash = swapFlashIds.includes(pl.id);
                                   return (
                                     <li key={pl.id}>
                                       <Box
-                                        onClick={()=>toggleSelect(pl.id)}
+                                        draggable={editMode}
+                                        onDragStart={(e)=> onDragStart(e, pl.id, team.id)}
+                                        onDragEnd={onDragEnd}
                                         sx={{
-                                          cursor: editMode ? 'pointer':'default',
+                                          cursor: editMode ? 'grab':'default',
                                           px:0.5,
                                           py:0.25,
                                           borderRadius:0.5,
-                                          transition:'background .25s, transform .25s',
-                                          background: isSel ? 'rgba(25,118,210,0.25)' : flash ? 'rgba(76,175,80,0.35)' : 'transparent',
-                                          transform: flash ? 'scale(1.05)' : 'none'
+                                          transition:'background .25s',
+                                          background: dragPlayerId === pl.id ? 'rgba(25,87,144,0.25)' : 'transparent'
                                         }}
                                       >
                                         <Typography variant="body2" component="span">{pl.name}</Typography>
@@ -217,23 +224,25 @@ export default function TeamsPage() {
             ))}
           </Grid>
           {waitList.length > 0 && (
-            <Box mt={3}>
+            <Box mt={3}
+              onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
+              onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid,'wait'); }}
+            >
               <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 {waitList.map((pid: string) => {
                   const pl = eligiblePlayers.find((p:any)=>p.id===pid) || players.find((p:any)=>p.id===pid);
                   if (!pl) return null;
-                  const isSel = selected.includes(pid);
-                  const flash = swapFlashIds.includes(pid);
                   return (
                     <Paper
                       key={pid}
-                      onClick={()=>toggleSelect(pid)}
+                      draggable={editMode}
+                      onDragStart={(e)=> onDragStart(e, pid, 'wait')}
+                      onDragEnd={onDragEnd}
                       variant="outlined"
-                      sx={{ px:1, py:0.5, cursor: editMode ? 'pointer':'default',
-                        background: isSel ? 'rgba(25,118,210,0.25)' : flash ? 'rgba(76,175,80,0.35)' : 'transparent',
-                        transition:'background .25s, transform .25s',
-                        transform: flash ? 'scale(1.05)' : 'none'
+                      sx={{ px:1, py:0.5, cursor: editMode ? 'grab':'default',
+                        background: dragPlayerId === pid ? 'rgba(25,87,144,0.25)' : 'transparent',
+                        transition:'background .25s'
                       }}
                     >
                       <Typography variant="body2">{pl.name}</Typography>

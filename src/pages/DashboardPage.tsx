@@ -101,16 +101,28 @@ export default function DashboardPage() {
         </Stack>
         <Box mb={2}>
           <Typography variant="subtitle2" gutterBottom>{t('dashboard.instructionsTitle')}</Typography>
-          <Typography variant="body2" color="text.secondary" component="div">
-            <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-              <li>{t('dashboard.instructions.step1')}</li>
-              <li>{t('dashboard.instructions.step2')}</li>
-              <li>{t('dashboard.instructions.step3')}</li>
-              <li>{t('dashboard.instructions.step4')}</li>
-              <li>{t('dashboard.instructions.step5')}</li>
-              <li>{t('dashboard.instructions.step6')}</li>
-            </ul>
-          </Typography>
+          {importMode === 'season' && (
+            <Typography variant="body2" color="text.secondary" component="div">
+              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                <li>{t('dashboard.instructions.step1')}</li>
+                <li>{t('dashboard.instructions.step2')}</li>
+                <li>{t('dashboard.instructions.step3')}</li>
+                <li>{t('dashboard.instructions.step4')}</li>
+                <li>{t('dashboard.instructions.step5')}</li>
+                <li>{t('dashboard.instructions.step6')}</li>
+              </ul>
+            </Typography>
+          )}
+          {importMode === 'match' && (
+            <Typography variant="body2" color="text.secondary" component="div">
+              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                <li>Gå til arrangmentet i Spond</li>
+                <li>Trykk på menyknappen med tre prikker (… ) til høyre.</li>
+                <li>Velg "Eksporter deltagerliste"</li>
+                <li>Last opp filen her</li>
+              </ul>
+            </Typography>
+          )}
         </Box>
         <Button variant="contained" component="label" disabled={loading}>
           {loading ? 'Importerer…' : 'Velg fil'}

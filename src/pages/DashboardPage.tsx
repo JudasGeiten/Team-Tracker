@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [teamCounts, setTeamCounts] = useState<Record<string, number>>({});
   const [discardIds, setDiscardIds] = useState<Set<string>>(new Set()); // manual discards during clarification
   const [dragTarget, setDragTarget] = useState<string | null>(null); // 'training' | 'match' | 'discard'
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -96,46 +97,86 @@ export default function DashboardPage() {
 @keyframes fadeSlide {from {opacity:0; transform:translateY(-4px);} to {opacity:1; transform:translateY(0);} }`}</style>
     <Stack spacing={3}>
       <Paper sx={{ p:2 }}>
-        <Typography variant="h6" gutterBottom>{t('dashboard.importTitle')}</Typography>
-        <Stack direction={{ xs:'column', sm:'row' }} spacing={1} mb={2} alignItems="center">
-          <Typography variant="body2" sx={{ fontWeight:600 }}>{t('dashboard.modeLabel') || 'Mode:'}</Typography>
-          <Chip label={t('dashboard.mode.season')} color={importMode==='season'?'primary':'default'} onClick={()=> setImportMode('season')} />
-          <Chip label={t('dashboard.mode.match')} color={importMode==='match'?'primary':'default'} onClick={()=> setImportMode('match')} />
-          <Typography variant="caption" color="text.secondary" sx={{ ml:1 }}>
-            {importMode==='season' ? t('dashboard.modeHelp.season') : t('dashboard.modeHelp.match')}
-          </Typography>
-        </Stack>
-        <Box mb={2}>
-          <Typography variant="subtitle2" gutterBottom>{t('dashboard.instructionsTitle')}</Typography>
-          {importMode === 'season' && (
-            <Typography variant="body2" color="text.secondary" component="div">
-              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-                <li>{t('dashboard.instructions.step1')}</li>
-                <li>{t('dashboard.instructions.step2')}</li>
-                <li>{t('dashboard.instructions.step3')}</li>
-                <li>{t('dashboard.instructions.step4')}</li>
-                <li>{t('dashboard.instructions.step5')}</li>
-                <li>{t('dashboard.instructions.step6')}</li>
-              </ul>
-            </Typography>
-          )}
-          {importMode === 'match' && (
-            <Typography variant="body2" color="text.secondary" component="div">
-              <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-                <li>Gå til arrangmentet i Spond</li>
-                <li>Trykk på menyknappen med tre prikker (… ) til høyre.</li>
-                <li>Velg "Eksporter deltagerliste"</li>
-                <li>Last opp filen her</li>
-              </ul>
-            </Typography>
-          )}
-        </Box>
-        <Button variant="contained" component="label" disabled={loading}>
-          {loading ? 'Importerer…' : 'Velg fil'}
-          <input hidden type="file" accept='.xlsx,.xls' onChange={onFile} />
-        </Button>
+        {/* Title logic: show mode name if data imported, otherwise onboarding question */}
+        {(players.length || events.length || matchImport?.players?.length) > 0 ? (
+          <Typography variant="h6" gutterBottom>{importMode==='season' ? t('dashboard.mode.season') : t('dashboard.mode.match')}</Typography>
+        ) : (
+          <Typography variant="h6" gutterBottom>Hva ønsker du å gjøre?</Typography>
+        )}
+
+        {!(players.length || events.length || matchImport?.players?.length) && (
+          <Stack spacing={2} mb={3}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p:2,
+                cursor:'pointer',
+                borderWidth: importMode==='match'?2:1,
+                borderColor: importMode==='match'? 'primary.main' : 'divider',
+                boxShadow: importMode==='match'? 3:0,
+                transition:'all .2s',
+                '&:hover':{ bgcolor:'action.hover' }
+              }}
+              onClick={()=> setImportMode('match')}
+            >
+              <Typography variant="subtitle1" gutterBottom>Sett opp lag for kommende turnering</Typography>
+              <Typography variant="body2" color="text.secondary">Planlegg lag for én kamp eller turnering ved å importere tilgjengelighetslisten.</Typography>
+            </Paper>
+            <Paper
+              variant="outlined"
+              sx={{
+                p:2,
+                cursor:'pointer',
+                borderWidth: importMode==='season'?2:1,
+                borderColor: importMode==='season'? 'primary.main' : 'divider',
+                boxShadow: importMode==='season'? 3:0,
+                transition:'all .2s',
+                '&:hover':{ bgcolor:'action.hover' }
+              }}
+              onClick={()=> setImportMode('season')}
+            >
+              <Typography variant="subtitle1" gutterBottom>Se hvordan sesongen går så langt</Typography>
+              <Typography variant="body2" color="text.secondary">Importer full oppmøtehistorikk for å analysere trenings- og kampdeltagelse.</Typography>
+            </Paper>
+          </Stack>
+        )}
+
+        {/* Mode selector chips removed per latest requirement */}
+
+        {/* Instructions shown after a mode is chosen but before any file imported */}
+        {!(players.length || events.length || matchImport?.players?.length) && importMode && (
+          <Box mb={2}>
+            <Typography variant="subtitle2" gutterBottom>Fremgangsmåte</Typography>
+            {importMode === 'season' && (
+              <Box component="ol" sx={{ pl:3, m:0 }}>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step1')}</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step2')}</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step3')}</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step4')}</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step5')}</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">{t('dashboard.instructions.step6')}</Typography>
+              </Box>
+            )}
+            {importMode === 'match' && (
+              <Box component="ol" sx={{ pl:3, m:0 }}>
+                <Typography component="li" variant="body2" color="text.secondary">Gå til arrangementet i Spond</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">Trykk på menyknappen med tre prikker (… ) til høyre.</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">Velg "Eksporter deltagerliste"</Typography>
+                <Typography component="li" variant="body2" color="text.secondary">Last opp filen her</Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Import button always available once a mode chosen */}
+        {importMode && (
+          <Button variant="contained" component="label" disabled={loading}>
+            {loading ? 'Importerer…' : 'Velg fil'}
+            <input hidden type="file" accept='.xlsx,.xls' onChange={onFile} />
+          </Button>
+        )}
         {(players.length || events.length || matchImport?.players?.length) > 0 && (
-          <Button sx={{ ml:2 }} color="secondary" variant="outlined" onClick={()=> clearImportedData()}>
+          <Button sx={{ ml:2 }} color="secondary" variant="outlined" onClick={()=> setResetConfirmOpen(true)}>
             Nullstill data
           </Button>
         )}
@@ -322,6 +363,17 @@ export default function DashboardPage() {
         )}
       </Paper>
     </Stack>
+    {/* Reset confirmation dialog */}
+    <Dialog open={resetConfirmOpen} onClose={()=> setResetConfirmOpen(false)}>
+      <DialogTitle>Nullstill data?</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary">Alle importerte data vil bli slettet. Dette kan ikke angres.</Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=> setResetConfirmOpen(false)}>Avbryt</Button>
+        <Button color="error" variant="contained" onClick={()=> { clearImportedData(); setResetConfirmOpen(false); }}>Nullstill</Button>
+      </DialogActions>
+    </Dialog>
     {/* Clarification Modal */}
     <Dialog open={clarifyOpen} fullWidth maxWidth="md" onClose={()=>setClarifyOpen(false)}>
       <DialogTitle>{t('dashboard.clarifyModal.title')}</DialogTitle>

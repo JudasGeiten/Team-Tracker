@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AppBar, Box, Container, CssBaseline, Toolbar, Typography, Tabs, Tab, useMediaQuery } from '@mui/material';
+import { useEffect } from 'react';
+import teamtallyLogoPath from '../teamtally.png';
 import { useTheme } from '@mui/material/styles';
 import PlayersPage from './pages/PlayersPage';
 import TeamsPage from './pages/TeamsPage';
@@ -12,12 +14,27 @@ function App() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Ensure favicon points to the bundled logo asset
+  useEffect(()=> {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]') || (()=> {
+      const l = document.createElement('link');
+      l.rel = 'icon';
+      document.head.appendChild(l);
+      return l;
+    })();
+    link.href = teamtallyLogoPath;
+  }, []);
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <CssBaseline />
       <AppBar position="static">
         <Toolbar>
-          <Typography variant={isMobile ? 'subtitle1' : 'h6'} sx={{ flexGrow: 1, whiteSpace:'nowrap' }}>{t('appTitle')}</Typography>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1, flexGrow:1, minWidth:0 }}>
+            <Box component="img" src={teamtallyLogoPath} alt="TeamTally" sx={{ height:{ xs:40, sm:48 }, width:{ xs:40, sm:48 }, objectFit:'contain', display:'block' }} />
+            <Typography variant={isMobile ? 'subtitle1' : 'h6'} sx={{ whiteSpace:'nowrap', fontWeight:600 }}>
+              {t('appTitle')}
+            </Typography>
+          </Box>
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}

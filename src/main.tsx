@@ -5,7 +5,17 @@ import App from './App';
 import './i18n';
 
 const theme = createTheme({
-  palette: { mode: 'light' }
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#195790',
+      contrastText: '#ffffff'
+    },
+    secondary: {
+      main: '#da191f',
+      contrastText: '#ffffff'
+    }
+  }
 });
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

@@ -35,7 +35,32 @@ interface PlayersState {
   restoreDiscardedEvent: (eventId: string, type: 'match' | 'training' | 'training') => void;
 }
 
-export const usePlayersStore = create<PlayersState>((set) => ({
+const PERSIST_KEY = 'teamTallyData_v1';
+
+// Attempt hydration
+let hydratedInitial: Partial<PlayersState> = {};
+if (typeof window !== 'undefined') {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Basic shape validation
+      if (parsed && typeof parsed === 'object') {
+        hydratedInitial = {
+          players: parsed.players || [],
+          groups: parsed.groups || [],
+          events: parsed.events || [],
+          attendance: parsed.attendance || [],
+          matchImport: parsed.matchImport || undefined,
+          discardedEvents: parsed.discardedEvents || [],
+          discardedEventIds: parsed.discardedEventIds || []
+        } as any;
+      }
+    }
+  } catch {}
+}
+
+export const usePlayersStore = create<PlayersState>((set, get) => ({
   players: [],
   groups: [],
   events: [],
@@ -300,8 +325,43 @@ export const usePlayersStore = create<PlayersState>((set) => ({
       return { ...p, matchesAttended: att?.matchAtt || 0, trainingsAttended: att?.trainingAtt || 0 };
     });
     return { events, players, discardedEvents };
-  })
+  }),
+  // Clear all persisted import data (except importMode & groups retained?) We'll clear everything except importMode.
+  clearImportedData: () => {
+    set({
+      players: [],
+      events: [],
+      attendance: [],
+      importDebug: undefined,
+      matchImport: undefined,
+      pendingImportEvents: undefined,
+      discardedEvents: [],
+      discardedEventIds: []
+    });
+    try { localStorage.removeItem(PERSIST_KEY); } catch {}
+  }
   
 }));
+
+// Merge hydration after creation (only if we actually loaded something)
+if (Object.keys(hydratedInitial).length) {
+  usePlayersStore.setState(hydratedInitial as any);
+}
+
+// Subscribe for persistence
+if (typeof window !== 'undefined') {
+  usePlayersStore.subscribe((state) => {
+    const snapshot = {
+      players: state.players,
+      groups: state.groups,
+      events: state.events,
+      attendance: state.attendance,
+      matchImport: state.matchImport,
+      discardedEvents: state.discardedEvents,
+      discardedEventIds: state.discardedEventIds
+    };
+    try { localStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot)); } catch {}
+  });
+}
 
 // group utilities removed

@@ -11,7 +11,7 @@ import { usePlayersStore } from '../state/usePlayersStore';
 type ImportMode = 'season' | 'match';
 
 export default function DashboardPage() {
-  const { players, events, attendance, importDebug, loadImport, applyImportClarification, pendingImportEvents, discardedEvents, reclassifyEvent, discardEventById, restoreDiscardedEvent } = usePlayersStore() as any;
+  const { players, events, attendance, importDebug, loadImport, applyImportClarification, pendingImportEvents, discardedEvents, reclassifyEvent, discardEventById, restoreDiscardedEvent, clearImportedData } = usePlayersStore() as any;
   const matchImport = usePlayersStore((s:any)=> s.matchImport);
   const importMode = usePlayersStore((s:any)=> s.importMode);
   const setImportMode = usePlayersStore((s:any)=> s.setImportMode);
@@ -128,6 +128,11 @@ export default function DashboardPage() {
           {loading ? 'Importerer…' : 'Velg fil'}
           <input hidden type="file" accept='.xlsx,.xls' onChange={onFile} />
         </Button>
+        {(players.length || events.length || matchImport?.players?.length) > 0 && (
+          <Button sx={{ ml:2 }} color="secondary" variant="outlined" onClick={()=> clearImportedData()}>
+            Nullstill data
+          </Button>
+        )}
         {error && <Alert severity="error" sx={{ mt:2 }}>{error}</Alert>}
 
   {importMode==='season' && players.length > 0 && !pendingImportEvents && (

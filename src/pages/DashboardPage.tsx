@@ -2,7 +2,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, Chip } from '@mui/material';
+import { Box, Button, Typography, Paper, Stack, List, ListItem, ListItemText, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Checkbox, Chip, Tooltip } from '@mui/material';
+import EventIcon from '@mui/icons-material/Event';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import PlaceIcon from '@mui/icons-material/Place';
+import GroupIcon from '@mui/icons-material/Group';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { parseImport } from '../lib/excel/parseImport';
 import { parseMatchImport } from '../lib/excel/parseMatchImport';
@@ -138,21 +144,29 @@ export default function DashboardPage() {
   {importMode==='season' && players.length > 0 && !pendingImportEvents && (
           <Box mt={3}>
             <Typography variant="subtitle1" gutterBottom>{t('dashboard.summaryTitle')}</Typography>
-            <Stack direction="row" spacing={isMobile ? 2 : 4} flexWrap="wrap" alignItems="flex-start">
-              {[
-                { label: t('dashboard.players'), value: players.length },
-                { label: t('dashboard.events'), value: events.length },
-                { label: t('dashboard.matches'), value: events.filter((e: any)=>e.type==='match').length },
-                { label: t('dashboard.trainings'), value: events.filter((e: any)=>e.type==='training').length },
-                { label: t('dashboard.firstEventDate'), value: firstEventDate || '—' },
-                { label: t('dashboard.lastEventDate'), value: lastEventDate || '—' }
-              ].map(item => (
-                <Box key={item.label} sx={{ minWidth: isMobile ? 100 : 140, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</Typography>
-                  <Typography variant="subtitle1" fontWeight={600}>{item.value}</Typography>
-                </Box>
-              ))}
-            </Stack>
+            {/* Season compact chip rail summary */}
+            <Box sx={{ overflowX: 'auto', pb: 1 }}>
+              <Stack direction="row" spacing={1} sx={{ width:'max-content', py:0.5 }}>
+                <Tooltip title={t('dashboard.players')}>
+                  <Chip size="small" icon={<GroupIcon />} label={players.length} color="primary" variant="filled" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.events')}>
+                  <Chip size="small" icon={<EventIcon />} label={events.length} variant="outlined" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.matches')}>
+                  <Chip size="small" icon={<EventIcon />} label={events.filter((e: any)=>e.type==='match').length} color="success" variant="filled" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.trainings')}>
+                  <Chip size="small" icon={<EventIcon />} label={events.filter((e: any)=>e.type==='training').length} color="secondary" variant="filled" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.firstEventDate')}>
+                  <Chip size="small" icon={<AccessTimeIcon />} label={firstEventDate || '—'} variant="outlined" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.lastEventDate')}>
+                  <Chip size="small" icon={<AccessTimeIcon />} label={lastEventDate || '—'} variant="outlined" />
+                </Tooltip>
+              </Stack>
+            </Box>
             {/* Three columns after clarification */}
             <Stack direction={{ xs:'column', md:'row' }} spacing={2} mt={2} alignItems="stretch">
               <Box flex={1}>
@@ -233,21 +247,36 @@ export default function DashboardPage() {
         {importMode==='match' && matchImport?.players?.length > 0 && (
           <Box mt={3}>
             <Typography variant="subtitle1" gutterBottom>{t('dashboard.summaryTitleMatch') || 'Match Summary'}</Typography>
-            <Stack direction="row" spacing={isMobile ? 2 : 4} flexWrap="wrap" alignItems="flex-start">
-              {[
-                { label: t('dashboard.matchImport.metaName') || 'Match', value: matchImport.meta.name || '—' },
-                { label: t('dashboard.matchImport.metaDate') || 'Date/Time', value: matchImport.meta.dateTimeRaw || '—' },
-                { label: t('dashboard.matchImport.metaLocation') || 'Location', value: matchImport.meta.location || '—' },
-                { label: t('dashboard.matchImport.totalPlayers') || 'Players', value: matchImport.players.length },
-                { label: t('dashboard.matchImport.attending') || 'Attending', value: matchImport.players.filter((p:any)=> p.status==='attending').length },
-                { label: t('dashboard.matchImport.declined') || 'Declined', value: matchImport.players.filter((p:any)=> p.status==='declined').length }
-              ].map(item => (
-                <Box key={item.label} sx={{ minWidth: isMobile ? 100 : 140, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</Typography>
-                  <Typography variant="subtitle1" fontWeight={600}>{item.value}</Typography>
-                </Box>
-              ))}
-            </Stack>
+            {/* Enhanced compact summary: scrollable single line chip rail */}
+            <Box sx={{ overflowX: 'auto', pb: 1 }}>
+              <Stack direction="row" spacing={1} sx={{ width:'max-content', py:0.5 }}>
+                <Chip size="small" icon={<EventIcon />} label={`${matchImport.meta.name || '—'}`} variant="outlined" />
+                <Chip size="small" icon={<AccessTimeIcon />} label={`${matchImport.meta.dateTimeRaw || '—'}`} variant="outlined" />
+                <Chip size="small" icon={<PlaceIcon />} label={`${matchImport.meta.location || '—'}`} variant="outlined" />
+                <Tooltip title={t('dashboard.matchImport.totalPlayers')}>
+                  <Chip size="small" icon={<GroupIcon />} label={matchImport.players.length} color="primary" variant="filled" />
+                </Tooltip>
+                <Tooltip title={t('dashboard.matchImport.attending')}>
+                  <Chip
+                    size="small"
+                    icon={<CheckCircleIcon />}
+                    label={matchImport.players.filter((p:any)=> p.status==='attending').length}
+                    color="success"
+                    variant="filled"
+                  />
+                </Tooltip>
+                <Tooltip title={t('dashboard.matchImport.declined')}
+                >
+                  <Chip
+                    size="small"
+                    icon={<CancelIcon />}
+                    label={matchImport.players.filter((p:any)=> p.status==='declined').length}
+                    color="error"
+                    variant="filled"
+                  />
+                </Tooltip>
+              </Stack>
+            </Box>
             <Stack direction={{ xs:'column', md:'row' }} spacing={2} mt={2} alignItems="stretch">
               {['attending','declined'].map(col => (
                 <Box flex={1} key={col}>

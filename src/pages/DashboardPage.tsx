@@ -105,7 +105,7 @@ export default function DashboardPage() {
         )}
 
         {!(players.length || events.length || matchImport?.players?.length) && (
-          <Stack spacing={2} mb={3}>
+          <Stack spacing={2} mb={3} direction={{ xs:'column', md:'row' }} alignItems={{ xs:'stretch', md:'flex-start' }}>
             <Paper
               variant="outlined"
               sx={{
@@ -115,7 +115,9 @@ export default function DashboardPage() {
                 borderColor: importMode==='match'? 'primary.main' : 'divider',
                 boxShadow: importMode==='match'? 3:0,
                 transition:'all .2s',
-                '&:hover':{ bgcolor:'action.hover' }
+                '&:hover':{ bgcolor:'action.hover' },
+                flex:1,
+                minWidth: 0
               }}
               onClick={()=> setImportMode('match')}
             >
@@ -131,7 +133,9 @@ export default function DashboardPage() {
                 borderColor: importMode==='season'? 'primary.main' : 'divider',
                 boxShadow: importMode==='season'? 3:0,
                 transition:'all .2s',
-                '&:hover':{ bgcolor:'action.hover' }
+                '&:hover':{ bgcolor:'action.hover' },
+                flex:1,
+                minWidth: 0
               }}
               onClick={()=> setImportMode('season')}
             >

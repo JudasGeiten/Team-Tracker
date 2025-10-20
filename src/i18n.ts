@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 const resources = {
   en: { translation: {
-    appTitle: 'Team Manager',
+  appTitle: 'TeamTally',
     nav: { dashboard: 'Dashboard', players: 'Players', teams: 'Teams', reports: 'Reports' },
     dashboard: {
       importTitle: 'Import from Spond',
@@ -31,18 +31,29 @@ const resources = {
         applySelections: 'Apply Selections',
         cancel: 'Cancel'
       },
-      columns: { trainings: 'Trainings', matches: 'Matches', discarded: 'Discarded' }
+      columns: { trainings: 'Trainings', matches: 'Matches', discarded: 'Discarded' },
+      modeLabel: 'Mode', mode: { season: 'Season', match: 'Match' }, modeHelp: { season: 'Import full season attendance sheet.', match: 'Import single match availability sheet.' },
+      summaryTitleMatch: 'Match Summary',
+  matchImport: {
+      metaName: 'Event', metaDate: 'Date/Time', metaLocation: 'Location', totalPlayers: 'Players', attending: 'Attending', declined: 'Declined',
+      columns: { attending: 'Attending', declined: 'Declined' }
+    }
     },
     playersPage: {
       searchPlaceholder: 'Search players',
       manageGroups: 'Manage Groups',
+      matchModeTitle: 'Match Players',
+      matchModeSubtitle: 'Attendance metrics hidden in match mode. Showing players, status and group assignment only.',
+  matchShowDeclinedLabel: 'Show declined players',
+      filterAll: 'All',
       table: { name: 'Name', group: 'Group', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendancePct: 'Attendance %', actions: 'Actions', trainingsGroup: 'Trainings', matchesGroup: 'Matches' },
       details: 'Details', removeConfirm: 'Remove player {{name}}? This cannot be undone.',
       groupsDialog: { title: 'Groups', newGroup: 'New group', renameGroup: 'Rename group', add: 'Add', save: 'Save', cancel: 'Cancel', noneYet: 'No groups yet.' },
       playerDetails: {
         title: 'Player Details', summary: 'Summary', invited: 'Invited', attended: 'Attended', absent: 'Absent', attendance: 'Attendance', trainingsAttended: 'Trainings Attended', matchesAttended: 'Matches Attended', trainingsAbsent: 'Trainings Absent', matchesAbsent: 'Matches Absent', noTrainings: 'No trainings attended', noMatches: 'No matches attended', noTrainingsAbsent: 'No trainings missed', noMatchesAbsent: 'No matches missed', filterAll: 'All', filterAttended: 'Attended', filterAbsent: 'Absent', close: 'Close'
       },
-      noPlayers: 'No players'
+      noPlayers: 'No players',
+      matchStatus: { attending: 'Attending', declined: 'Declined' }
     },
     teamsPage: {
       generationTitle: 'Team Generation', targets: 'Targets', teamSize: 'Team Size', teamCount: 'Team Count', capacityHint: 'Capacity = size * count. Overflow players go to the wait list.', weightingLabel: 'Fairness weighting (prioritize lower attendance)', generateBtn: 'Generate Teams', regenerate: 'Regenerate', regenerateAgain: 'Regenerate Again', confirmTitle: 'Regenerate Teams?', confirmBody: 'This will discard the current team arrangement and generate new teams. Continue?', confirmCancel: 'Cancel', confirmOk: 'Regenerate', eligible: 'Eligible players', generatedTitle: 'Generated Teams', waitList: 'Wait List'
@@ -65,10 +76,11 @@ const resources = {
       , rateUnitLabel: { week: 'Matches per week', month: 'Matches per month', sixMonths: 'Matches per 6 months', year: 'Matches per year' }
       , rateLabelUnit: { week: 'Matches/week', month: 'Matches/month', sixMonths: 'Matches/6mo', year: 'Matches/year' }
       , rangeSpanLabel: 'Span: {{weeks}} weeks'
+      , matchModeWarning: 'Reports are only available in Season mode. Switch to Season import to view charts.'
     }
   }},
   no: { translation: {
-    appTitle: 'Lagstyring',
+  appTitle: 'TeamTally',
     nav: { dashboard: 'Oversikt', players: 'Spillere', teams: 'Lag', reports: 'Rapporter' },
     dashboard: {
       importTitle: 'Import fra Spond',
@@ -96,18 +108,29 @@ const resources = {
         applySelections: 'Bruk valg',
         cancel: 'Avbryt'
       },
-      columns: { trainings: 'Treninger', matches: 'Kamper', discarded: 'Forkastet' }
+      columns: { trainings: 'Treninger', matches: 'Kamper', discarded: 'Forkastet' },
+      modeLabel: 'Modus', mode: { season: 'Sesong', match: 'Kamp' }, modeHelp: { season: 'Importer sesong-oppmøtedata.', match: 'Importer tilgjengelighet for enkel kamp.' },
+      summaryTitleMatch: 'Kampoppsummering',
+  matchImport: {
+      metaName: 'Arrangement', metaDate: 'Dato/Tid', metaLocation: 'Sted', totalPlayers: 'Spillere', attending: 'Kommer', declined: 'Kan ikke komme',
+      columns: { attending: 'Kommer', declined: 'Kan ikke komme' }
+    }
     },
     playersPage: {
       searchPlaceholder: 'Søk spillere',
       manageGroups: 'Administrer grupper',
+      matchModeTitle: 'Kampliste',
+      matchModeSubtitle: 'Oppmøtestatistikk skjules i kampmodus. Viser kun spillere, status og gruppe.',
+  matchShowDeclinedLabel: 'Vis spillere som ikke kan',
+      filterAll: 'Alle',
       table: { name: 'Navn', group: 'Gruppe', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendancePct: 'Oppmøte %', actions: 'Handlinger', trainingsGroup: 'Treninger', matchesGroup: 'Kamper' },
       details: 'Detaljer', removeConfirm: 'Fjern spiller {{name}}? Dette kan ikke angres.',
       groupsDialog: { title: 'Grupper', newGroup: 'Ny gruppe', renameGroup: 'Endre navn', add: 'Legg til', save: 'Lagre', cancel: 'Avbryt', noneYet: 'Ingen grupper ennå.' },
       playerDetails: {
         title: 'Spillerdetaljer', summary: 'Oppsummering', invited: 'Invitert', attended: 'Møtt', absent: 'Fravær', attendance: 'Oppmøte', trainingsAttended: 'Treninger', matchesAttended: 'Kamper', trainingsAbsent: 'Treninger (fravær)', matchesAbsent: 'Kamper (fravær)', noTrainings: 'Ingen treninger', noMatches: 'Ingen kamper', noTrainingsAbsent: 'Ingen treninger fravær', noMatchesAbsent: 'Ingen kamper fravær', filterAll: 'Alle', filterAttended: 'Møtt', filterAbsent: 'Fravær', close: 'Lukk'
       },
-      noPlayers: 'Ingen spillere'
+      noPlayers: 'Ingen spillere',
+      matchStatus: { attending: 'Kommer', declined: 'Kan ikke komme' }
     },
     teamsPage: {
       generationTitle: 'Lag', targets: 'Mål', teamSize: 'Lagstørrelse', teamCount: 'Antall lag', capacityHint: 'Kapasitet = størrelse * antall. Overskudd havner på venteliste.', weightingLabel: 'Rettferdighetsvekting (prioriter lavt oppmøte)', generateBtn: 'Generer lag', regenerate: 'Generer på nytt', regenerateAgain: 'Generer på nytt', confirmTitle: 'Generer på nytt?', confirmBody: 'Dette vil forkaste nåværende laginndeling og generere nye lag. Fortsette?', confirmCancel: 'Avbryt', confirmOk: 'Generer', eligible: 'Spillere tilgjengelig', generatedTitle: 'Genererte lag', waitList: 'Venteliste'
@@ -129,6 +152,7 @@ const resources = {
       , rateUnitLabel: { week: 'Kamper per uke', month: 'Kamper per måned', sixMonths: 'Kamper per 6 måneder', year: 'Kamper per år' }
       , rateLabelUnit: { week: 'Kamper/uke', month: 'Kamper/måned', sixMonths: 'Kamper/6mnd', year: 'Kamper/år' }
       , rangeSpanLabel: 'Periode: {{weeks}} uker'
+      , matchModeWarning: 'Rapporter er kun tilgjengelig i Sesong-modus. Bytt til sesongimport for å se diagrammer.'
     }
   }}
 };

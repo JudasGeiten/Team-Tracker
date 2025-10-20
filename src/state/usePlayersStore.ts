@@ -8,11 +8,20 @@ interface PlayersState {
   events: Event[];
   attendance: AttendanceRecord[];
   importDebug?: any;
+  matchImport?: {
+    meta: { name?: string; dateTimeRaw?: string; location?: string };
+    players: Array<{ id: string; name: string; status: 'attending' | 'declined'; groupId?: string | null }>;
+    debug?: any;
+  };
+  importMode: 'season' | 'match';
+  setImportMode: (mode: 'season' | 'match') => void;
   pendingImportEvents?: Event[];
   discardedEventIds?: string[];
   discardedEvents?: Event[];
   setData: (p: Partial<Pick<PlayersState, 'players' | 'groups' | 'events' | 'attendance' | 'importDebug'>>) => void;
   loadImport: (data: { players: Player[]; events: Event[]; attendance: AttendanceRecord[]; debug?: any }) => void;
+  loadMatchImport: (data: { meta: { name?: string; dateTimeRaw?: string; location?: string }; players: Array<{ id: string; name: string; status: 'attending' | 'declined' }>; debug?: any }) => void;
+  setMatchPlayerGroup: (playerId: string, groupId: string | null) => void;
   updateEventType: (eventId: string, type: 'training' | 'match') => void;
   discardEvent: (eventId: string) => void;
   removePlayer: (playerId: string) => void;
@@ -35,8 +44,32 @@ export const usePlayersStore = create<PlayersState>((set) => ({
   pendingImportEvents: undefined,
   discardedEventIds: [],
   discardedEvents: [],
+  // Persist import mode across navigation / reload. Safe browser check.
+  importMode: (typeof window !== 'undefined' && (localStorage.getItem('importMode') as 'season' | 'match')) || 'season',
+  setImportMode: (mode) => {
+    try { if (typeof window !== 'undefined') localStorage.setItem('importMode', mode); } catch {}
+    set({ importMode: mode });
+  },
   setData: (p) => set(p as any),
   loadImport: ({ players, events, attendance, debug }) => set({ players, events, attendance, importDebug: debug, pendingImportEvents: events }),
+  loadMatchImport: ({ meta, players, debug }) => set(state => {
+    // Attempt to inherit group from roster by name (case-insensitive) when loading match import.
+    const rosterByName: Record<string, Player> = Object.fromEntries(state.players.map(p => [p.name.trim().toLowerCase(), p]));
+    const enriched = players.map(p => ({
+      ...p,
+      groupId: rosterByName[p.name.trim().toLowerCase()]?.groupId || null
+    }));
+    return { matchImport: { meta, players: enriched, debug }, importDebug: debug };
+  }),
+  setMatchPlayerGroup: (playerId, groupId) => set(state => {
+    if (!state.matchImport) return {} as any;
+    return {
+      matchImport: {
+        ...state.matchImport,
+        players: state.matchImport.players.map(p => p.id === playerId ? { ...p, groupId } : p)
+      }
+    };
+  }),
   updateEventType: (eventId, type) => set(state => {
     const events = state.events.map(e => e.id === eventId ? { ...e, type, needsTypeConfirmation: false } : e);
     // Recompute derived counts for players (matches/trainingsAttended, invited/attended totals unaffected by type change)
@@ -127,7 +160,11 @@ export const usePlayersStore = create<PlayersState>((set) => ({
   addGroup: (name) => set(state => ({ groups: [...state.groups, { id: nanoid(), name }] })),
   removeGroup: (groupId) => set(state => ({
     groups: state.groups.filter(g => g.id !== groupId),
-    players: state.players.map(p => p.groupId === groupId ? { ...p, groupId: null } : p)
+    players: state.players.map(p => p.groupId === groupId ? { ...p, groupId: null } : p),
+    matchImport: state.matchImport ? {
+      ...state.matchImport,
+      players: state.matchImport.players.map(p => p.groupId === groupId ? { ...p, groupId: null } : p)
+    } : state.matchImport
   })),
   renameGroup: (groupId, name) => set(state => ({ groups: state.groups.map(g => g.id === groupId ? { ...g, name } : g) })),
   applyImportClarification: ({ matchTeams, discardEventIds }) => set(state => {

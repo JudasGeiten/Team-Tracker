@@ -19,7 +19,7 @@ function groupColor(seed: string): string {
 }
 
 export default function TeamsPage() {
-  const { players, groups } = usePlayersStore() as any;
+  const { players, groups, importMode, matchImport } = usePlayersStore() as any;
   const { teams, setTeams, waitList, swapPlayers, renameTeam } = useTeamsStore() as any;
   const mode: 'mixed' = 'mixed';
   const [teamSize, setTeamSize] = useState(8);
@@ -32,15 +32,37 @@ export default function TeamsPage() {
   const [regenDialogOpen, setRegenDialogOpen] = useState(false);
   const { t } = useTranslation();
 
-  const eligiblePlayers = players;
+  const eligiblePlayers = useMemo(()=> {
+    if (importMode === 'match' && matchImport?.players?.length) {
+      const rosterByName: Record<string, any> = Object.fromEntries(players.map((p:any)=> [p.name.trim().toLowerCase(), p]));
+      return matchImport.players
+        .filter((p:any)=> p.status==='attending')
+        .map((mp:any)=> {
+          const roster = rosterByName[mp.name.trim().toLowerCase()];
+          return {
+            id: roster?.id || `temp-${mp.id}`, // ensure unique temp id if not in roster
+            name: mp.name,
+            groupId: mp.groupId ?? roster?.groupId ?? null,
+            attendedTotal: roster?.attendedTotal || 0,
+            invitedTotal: roster?.invitedTotal || 0
+          };
+        });
+    }
+    return players;
+  }, [players, importMode, matchImport]);
 
   function actuallyGenerate() {
     setError(null);
     if (!eligiblePlayers.length) { setError('No eligible players.'); return; }
     if (!teamSize || teamSize < 1) { setError('Team size must be >= 1'); return; }
     if (!teamCount || teamCount < 1) { setError('Team count must be >= 1'); return; }
+    const pool = eligiblePlayers.map((p: any) => ({
+      ...p,
+      // Provide safe numeric defaults required by generator (attendedTotal used for weighting)
+      attendedTotal: p.attendedTotal || 0
+    }));
     const result = generateTeams({
-      players: players,
+      players: pool,
       mode: 'mixed',
       weighting,
       target: { teamSize, teamCount }
@@ -115,7 +137,7 @@ export default function TeamsPage() {
               <Typography variant="caption" color="text.secondary">Velg en spiller til for å bytte.</Typography>
             )}
           </Box>
-          <Typography variant="body2" color="text.secondary">{t('teamsPage.eligible')}: {eligiblePlayers.length}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('teamsPage.eligible')}: {eligiblePlayers.length}{importMode==='match' ? ` (match mode)` : ''}</Typography>
           {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </Paper>
@@ -146,7 +168,7 @@ export default function TeamsPage() {
                     // group players by groupId for this team
                     const grouped: Record<string, any[]> = {};
                     team.playerIds.forEach((pid: string) => {
-                      const pl = players.find((p: any)=>p.id===pid); if (!pl) return;
+                      const pl = eligiblePlayers.find((p: any)=>p.id===pid) || players.find((p: any)=>p.id===pid); if (!pl) return;
                       const key = pl.groupId || '__none';
                       if (!grouped[key]) grouped[key] = [];
                       grouped[key].push(pl);
@@ -199,7 +221,7 @@ export default function TeamsPage() {
               <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 {waitList.map((pid: string) => {
-                  const pl = players.find((p:any)=>p.id===pid);
+                  const pl = eligiblePlayers.find((p:any)=>p.id===pid) || players.find((p:any)=>p.id===pid);
                   if (!pl) return null;
                   const isSel = selected.includes(pid);
                   const flash = swapFlashIds.includes(pid);

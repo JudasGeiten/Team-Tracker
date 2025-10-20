@@ -1,8 +1,8 @@
 {
-  "name": "team-manager",
+  "name": "team-tally",
   "private": true,
   "version": "0.1.0",
-  "description": "Team Manager - offline web app for youth football team management (import, groups, balanced team generation, reports)",
+  "description": "TeamTally - offline web app for youth football team management (import, groups, balanced team generation, reports)",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -180,9 +180,15 @@ function TrainingAttendanceChart() {
 
 export default function ReportsPage() {
   const { t } = useTranslation();
+  const importMode = usePlayersStore(s => s.importMode);
   const [unit, setUnit] = useState<RateUnit>('week');
   return (
     <Box>
+      {importMode === 'match' && (
+        <Paper sx={{ p: 2, mb: 3, borderColor: 'warning.main' }} variant="outlined">
+          <Typography variant="subtitle2" color="warning.main">{t('reportsPage.matchModeWarning') || 'Reports are only available in Season mode. Switch to Season import to view charts.'}</Typography>
+        </Paper>
+      )}
       <Box sx={{ display:'flex', justifyContent:'flex-end', mb:1 }}>
         <ToggleButtonGroup size="small" value={unit} exclusive onChange={(_, val) => { if (val) setUnit(val); }}>
           <ToggleButton value="week">{t('reportsPage.unit.week')}</ToggleButton>

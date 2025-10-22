@@ -181,7 +181,7 @@ export default function DashboardPage() {
         )}
         {(players.length || events.length || matchImport?.players?.length) > 0 && (
           <Button sx={{ ml:2 }} color="secondary" variant="outlined" onClick={()=> setResetConfirmOpen(true)}>
-            Nullstill data
+            Nullstill og begynn på nytt
           </Button>
         )}
         {error && <Alert severity="error" sx={{ mt:2 }}>{error}</Alert>}
@@ -369,7 +369,7 @@ export default function DashboardPage() {
     </Stack>
     {/* Reset confirmation dialog */}
     <Dialog open={resetConfirmOpen} onClose={()=> setResetConfirmOpen(false)}>
-      <DialogTitle>Nullstill data?</DialogTitle>
+      <DialogTitle>Nullstill og begynn på nytt?</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary">Alle importerte data vil bli slettet. Dette kan ikke angres.</Typography>
       </DialogContent>

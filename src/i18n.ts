@@ -77,6 +77,10 @@ const resources = {
       , rateLabelUnit: { week: 'Matches/week', month: 'Matches/month', sixMonths: 'Matches/6mo', year: 'Matches/year' }
       , rangeSpanLabel: 'Span: {{weeks}} weeks'
       , matchModeWarning: 'Reports are only available in Season mode. Switch to Season import to view charts.'
+      , toggle: { matches: 'Matches', trainings: 'Trainings' }
+      , searchPlayersPlaceholder: 'Search player'
+      , viewScope: { top: 'Top {{count}}', bottom: 'Bottom {{count}}', all: 'All' }
+      , filteredLabel: 'Filtered: {{count}}'
     }
   }},
   no: { translation: {
@@ -153,6 +157,10 @@ const resources = {
       , rateLabelUnit: { week: 'Kamper/uke', month: 'Kamper/måned', sixMonths: 'Kamper/6mnd', year: 'Kamper/år' }
       , rangeSpanLabel: 'Periode: {{weeks}} uker'
       , matchModeWarning: 'Rapporter er kun tilgjengelig i Sesong-modus. Bytt til sesongimport for å se diagrammer.'
+      , toggle: { matches: 'Kamper', trainings: 'Treninger' }
+      , searchPlayersPlaceholder: 'Søk spiller'
+      , viewScope: { top: 'Topp {{count}}', bottom: 'Bunn {{count}}', all: 'Alle' }
+      , filteredLabel: 'Filtrert: {{count}}'
     }
   }}
 };

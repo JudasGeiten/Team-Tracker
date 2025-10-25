@@ -33,6 +33,10 @@ export default function TeamsPage() {
   const [dragOriginTeamId, setDragOriginTeamId] = useState<string | null>(null);
   const [regenDialogOpen, setRegenDialogOpen] = useState(false);
   const { t } = useTranslation();
+  
+  // Touch drag state
+  const [touchDragPlayerId, setTouchDragPlayerId] = useState<string | null>(null);
+  const [touchDragOrigin, setTouchDragOrigin] = useState<string | null>(null);
 
   const eligiblePlayers = useMemo(()=> {
     if (importMode === 'match' && matchImport?.players?.length) {
@@ -104,6 +108,33 @@ export default function TeamsPage() {
     setDragOriginTeamId(null);
   }
 
+  // Touch handlers for drag and drop
+  const handleTouchStartPlayer = (e: React.TouchEvent, pid: string, origin: string | 'wait') => {
+    if (!editMode) return;
+    (e.currentTarget as HTMLElement).style.opacity = '0.5';
+    setTouchDragPlayerId(pid);
+    setTouchDragOrigin(origin);
+  };
+
+  const handleTouchEndPlayer = (e: React.TouchEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setTouchDragPlayerId(null);
+    setTouchDragOrigin(null);
+  };
+
+  const handleTouchMovePlayer = (e: React.TouchEvent) => {
+    if (!touchDragPlayerId) return;
+    // Prevent scrolling while dragging
+    e.preventDefault();
+  };
+
+  const handleTouchDropTeam = (targetTeamId: string | 'wait') => {
+    if (!touchDragPlayerId) return;
+    movePlayer(touchDragPlayerId, targetTeamId);
+    setTouchDragPlayerId(null);
+    setTouchDragOrigin(null);
+  };
+
   return (
     <>
     <Stack spacing={3}>
@@ -149,9 +180,15 @@ export default function TeamsPage() {
               <Grid item xs={12} sm={6} md={4} lg={3} key={team.id}>
                 <Paper
                   variant="outlined"
+                  data-team-drop-zone={team.id}
                   sx={{ p:1, borderColor: dragPlayerId && dragOriginTeamId !== team.id ? 'primary.light' : undefined }}
                   onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
                   onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid, team.id); }}
+                  onTouchEnd={(e)=> {
+                    if (touchDragPlayerId && editMode) {
+                      handleTouchDropTeam(team.id);
+                    }
+                  }}
                 >
                   {editMode ? (
                     <TextField
@@ -198,13 +235,16 @@ export default function TeamsPage() {
                                         draggable={editMode}
                                         onDragStart={(e)=> onDragStart(e, pl.id, team.id)}
                                         onDragEnd={onDragEnd}
+                                        onTouchStart={(e)=> handleTouchStartPlayer(e, pl.id, team.id)}
+                                        onTouchEnd={handleTouchEndPlayer}
+                                        onTouchMove={handleTouchMovePlayer}
                                         sx={{
                                           cursor: editMode ? 'grab':'default',
                                           px:0.5,
                                           py:0.25,
                                           borderRadius:0.5,
                                           transition:'background .25s',
-                                          background: dragPlayerId === pl.id ? 'rgba(25,87,144,0.25)' : 'transparent'
+                                          background: (dragPlayerId === pl.id || touchDragPlayerId === pl.id) ? 'rgba(25,87,144,0.25)' : 'transparent'
                                         }}
                                       >
                                         <Typography variant="body2" component="span">{pl.name}</Typography>
@@ -225,8 +265,14 @@ export default function TeamsPage() {
           </Grid>
           {waitList.length > 0 && (
             <Box mt={3}
+              data-team-drop-zone="wait"
               onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
               onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid,'wait'); }}
+              onTouchEnd={(e)=> {
+                if (touchDragPlayerId && editMode) {
+                  handleTouchDropTeam('wait');
+                }
+              }}
             >
               <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>
@@ -239,9 +285,12 @@ export default function TeamsPage() {
                       draggable={editMode}
                       onDragStart={(e)=> onDragStart(e, pid, 'wait')}
                       onDragEnd={onDragEnd}
+                      onTouchStart={(e)=> handleTouchStartPlayer(e, pid, 'wait')}
+                      onTouchEnd={handleTouchEndPlayer}
+                      onTouchMove={handleTouchMovePlayer}
                       variant="outlined"
                       sx={{ px:1, py:0.5, cursor: editMode ? 'grab':'default',
-                        background: dragPlayerId === pid ? 'rgba(25,87,144,0.25)' : 'transparent',
+                        background: (dragPlayerId === pid || touchDragPlayerId === pid) ? 'rgba(25,87,144,0.25)' : 'transparent',
                         transition:'background .25s'
                       }}
                     >

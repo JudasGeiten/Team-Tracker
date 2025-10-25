@@ -35,6 +35,10 @@ export default function DashboardPage() {
   const [discardIds, setDiscardIds] = useState<Set<string>>(new Set()); // manual discards during clarification
   const [dragTarget, setDragTarget] = useState<string | null>(null); // 'training' | 'match' | 'discard'
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  
+  // Touch drag state
+  const [touchDragEventId, setTouchDragEventId] = useState<string | null>(null);
+  const [touchDragPlayerId, setTouchDragPlayerId] = useState<string | null>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -90,6 +94,73 @@ export default function DashboardPage() {
     if (!dated.length) return '';
     return dated[dated.length-1].date!.split('T')[0];
   }, [events]);
+
+  // Touch drag handlers for events
+  const handleTouchStartEvent = (e: React.TouchEvent, eventId: string) => {
+    (e.currentTarget as HTMLElement).style.opacity = '0.5';
+    setTouchDragEventId(eventId);
+  };
+
+  const handleTouchEndEvent = (e: React.TouchEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setTouchDragEventId(null);
+    setDragTarget(null);
+  };
+
+  const handleTouchMoveEvent = (e: React.TouchEvent) => {
+    if (!touchDragEventId) return;
+    const touch = e.touches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropZone = elementBelow?.closest('[data-drop-zone]');
+    if (dropZone) {
+      const zone = dropZone.getAttribute('data-drop-zone');
+      setDragTarget(zone);
+    } else {
+      setDragTarget(null);
+    }
+  };
+
+  const handleTouchDropEvent = (targetType: 'training' | 'match' | 'discard') => {
+    if (!touchDragEventId) return;
+    if (targetType === 'training') {
+      reclassifyEvent(touchDragEventId, 'training');
+    } else if (targetType === 'match') {
+      reclassifyEvent(touchDragEventId, 'match');
+    } else if (targetType === 'discard') {
+      discardEventById(touchDragEventId);
+    }
+    setTouchDragEventId(null);
+    setDragTarget(null);
+  };
+
+  // Touch drag handlers for match players
+  const handleTouchStartPlayer = (e: React.TouchEvent, playerId: string) => {
+    (e.currentTarget as HTMLElement).style.opacity = '0.5';
+    setTouchDragPlayerId(playerId);
+  };
+
+  const handleTouchEndPlayer = (e: React.TouchEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setTouchDragPlayerId(null);
+  };
+
+  const handleTouchMovePlayer = (e: React.TouchEvent) => {
+    if (!touchDragPlayerId) return;
+    const touch = e.touches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropZone = elementBelow?.closest('[data-player-drop-zone]');
+    // Visual feedback could be added here if needed
+  };
+
+  const handleTouchDropPlayer = (status: 'attending' | 'declined') => {
+    if (!touchDragPlayerId) return;
+    usePlayersStore.setState(state => {
+      if (!state.matchImport) return {} as any;
+      const players = state.matchImport.players.map(p => p.id === touchDragPlayerId ? { ...p, status } : p);
+      return { matchImport: { ...state.matchImport, players } };
+    });
+    setTouchDragPlayerId(null);
+  };
 
   return (
     <>
@@ -216,7 +287,9 @@ export default function DashboardPage() {
             <Stack direction={{ xs:'column', md:'row' }} spacing={2} mt={2} alignItems="stretch">
               <Box flex={1}>
                 <Typography variant="subtitle2" gutterBottom>{t('dashboard.columns.trainings')}</Typography>
-                <Paper variant="outlined" sx={{ p:1, maxHeight:480, overflow:'auto', transition:'border-color 0.15s, background-color 0.15s', borderColor: dragTarget==='training' ? 'primary.main' : undefined, backgroundColor: dragTarget==='training' ? 'action.hover' : undefined }}
+                <Paper variant="outlined" 
+                  data-drop-zone="training"
+                  sx={{ p:1, maxHeight:480, overflow:'auto', transition:'border-color 0.15s, background-color 0.15s', borderColor: dragTarget==='training' ? 'primary.main' : undefined, backgroundColor: dragTarget==='training' ? 'action.hover' : undefined }}
                   onDragOver={(e)=> e.preventDefault()}
                   onDrop={(e)=> {
                     const id = e.dataTransfer.getData('text/event-id');
@@ -225,12 +298,25 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('training')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
+                  onTouchEnd={(e)=> {
+                    if (touchDragEventId) {
+                      handleTouchDropEvent('training');
+                    }
+                  }}
                 >
                   <List dense>
                     {events.filter((e: any)=>e.type==='training').map((ev: any) => (
-                      <ListItem key={ev.id} draggable className="fade-item" onDragStart={(e)=>{
-                        e.dataTransfer.setData('text/event-id', ev.id);
-                      }} secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}> 
+                      <ListItem key={ev.id} 
+                        draggable 
+                        className="fade-item" 
+                        onDragStart={(e)=>{
+                          e.dataTransfer.setData('text/event-id', ev.id);
+                        }}
+                        onTouchStart={(e)=> handleTouchStartEvent(e, ev.id)}
+                        onTouchEnd={handleTouchEndEvent}
+                        onTouchMove={handleTouchMoveEvent}
+                        secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}
+                      > 
                         <ListItemText primary={ev.name} secondary={ev.date? ev.date.split('T')[0] : ''} />
                       </ListItem>
                     ))}
@@ -240,7 +326,9 @@ export default function DashboardPage() {
               </Box>
               <Box flex={1}>
                 <Typography variant="subtitle2" gutterBottom>{t('dashboard.columns.matches')}</Typography>
-                <Paper variant="outlined" sx={{ p:1, maxHeight:480, overflow:'auto', transition:'border-color 0.15s, background-color 0.15s', borderColor: dragTarget==='match' ? 'primary.main' : undefined, backgroundColor: dragTarget==='match' ? 'action.hover' : undefined }}
+                <Paper variant="outlined" 
+                  data-drop-zone="match"
+                  sx={{ p:1, maxHeight:480, overflow:'auto', transition:'border-color 0.15s, background-color 0.15s', borderColor: dragTarget==='match' ? 'primary.main' : undefined, backgroundColor: dragTarget==='match' ? 'action.hover' : undefined }}
                   onDragOver={(e)=> e.preventDefault()}
                   onDrop={(e)=> {
                     const id = e.dataTransfer.getData('text/event-id');
@@ -249,12 +337,25 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('match')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
+                  onTouchEnd={(e)=> {
+                    if (touchDragEventId) {
+                      handleTouchDropEvent('match');
+                    }
+                  }}
                 >
                   <List dense>
                     {events.filter((e: any)=>e.type==='match').map((ev: any) => (
-                      <ListItem key={ev.id} draggable className="fade-item" onDragStart={(e)=>{
-                        e.dataTransfer.setData('text/event-id', ev.id);
-                      }} secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}> 
+                      <ListItem key={ev.id} 
+                        draggable 
+                        className="fade-item" 
+                        onDragStart={(e)=>{
+                          e.dataTransfer.setData('text/event-id', ev.id);
+                        }}
+                        onTouchStart={(e)=> handleTouchStartEvent(e, ev.id)}
+                        onTouchEnd={handleTouchEndEvent}
+                        onTouchMove={handleTouchMoveEvent}
+                        secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}
+                      > 
                         <ListItemText primary={ev.name} secondary={ev.date? ev.date.split('T')[0] : ''} />
                       </ListItem>
                     ))}
@@ -264,7 +365,9 @@ export default function DashboardPage() {
               </Box>
               <Box flex={1}>
                 <Typography variant="subtitle2" gutterBottom>{t('dashboard.columns.discarded')}</Typography>
-                <Paper variant="outlined" sx={{ p:1, maxHeight:480, overflow:'auto', borderColor: dragTarget==='discard' ? 'error.main' : 'error.main', transition:'border-color 0.15s, background-color 0.15s', backgroundColor: dragTarget==='discard' ? 'error.lighter' : undefined }}
+                <Paper variant="outlined" 
+                  data-drop-zone="discard"
+                  sx={{ p:1, maxHeight:480, overflow:'auto', borderColor: dragTarget==='discard' ? 'error.main' : 'error.main', transition:'border-color 0.15s, background-color 0.15s', backgroundColor: dragTarget==='discard' ? 'error.lighter' : undefined }}
                   onDragOver={(e)=> e.preventDefault()}
                   onDrop={(e)=> {
                     const id = e.dataTransfer.getData('text/event-id');
@@ -273,12 +376,26 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('discard')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
+                  onTouchEnd={(e)=> {
+                    if (touchDragEventId) {
+                      handleTouchDropEvent('discard');
+                    }
+                  }}
                 >
                   <List dense>
                     {(discardedEvents || []).map((ev: any) => (
-                      <ListItem key={ev.id} draggable className="fade-item" onDragStart={(e)=>{
-                        e.dataTransfer.setData('text/event-id', ev.id);
-                      }} onDoubleClick={()=> restoreDiscardedEvent(ev.id,'training')} secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}> 
+                      <ListItem key={ev.id} 
+                        draggable 
+                        className="fade-item" 
+                        onDragStart={(e)=>{
+                          e.dataTransfer.setData('text/event-id', ev.id);
+                        }}
+                        onTouchStart={(e)=> handleTouchStartEvent(e, ev.id)}
+                        onTouchEnd={handleTouchEndEvent}
+                        onTouchMove={handleTouchMoveEvent}
+                        onDoubleClick={()=> restoreDiscardedEvent(ev.id,'training')} 
+                        secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}
+                      > 
                         <ListItemText primary={ev.name} secondary={ev.date? ev.date.split('T')[0] : ''} />
                       </ListItem>
                     ))}
@@ -328,10 +445,11 @@ export default function DashboardPage() {
                   <Typography variant="subtitle2" gutterBottom>{t(`dashboard.matchImport.columns.${col}`) || col}</Typography>
                   <Paper
                     variant="outlined"
+                    data-player-drop-zone={col}
                     sx={{ p:1, maxHeight:480, overflow:'auto', transition:'border-color .15s, background-color .15s' }}
                     onDragOver={(e)=> e.preventDefault()}
-                    onDragEnter={(e)=> { e.currentTarget.style.borderColor = '#1976d2'; e.currentTarget.style.backgroundColor = 'var(--mui-palette-action-hover)'; }}
-                    onDragLeave={(e)=> { if (e.currentTarget === e.target) { e.currentTarget.style.borderColor=''; e.currentTarget.style.backgroundColor=''; } }}
+                    onDragEnter={(e)=> { (e.currentTarget as HTMLElement).style.borderColor = '#1976d2'; (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--mui-palette-action-hover)'; }}
+                    onDragLeave={(e)=> { if (e.currentTarget === e.target) { (e.currentTarget as HTMLElement).style.borderColor=''; (e.currentTarget as HTMLElement).style.backgroundColor=''; } }}
                     onDrop={(e)=> {
                       const pid = e.dataTransfer.getData('text/match-player-id');
                       if (pid) {
@@ -341,8 +459,13 @@ export default function DashboardPage() {
                           return { matchImport: { ...state.matchImport, players } };
                         });
                       }
-                      e.currentTarget.style.borderColor='';
-                      e.currentTarget.style.backgroundColor='';
+                      (e.currentTarget as HTMLElement).style.borderColor='';
+                      (e.currentTarget as HTMLElement).style.backgroundColor='';
+                    }}
+                    onTouchEnd={(e)=> {
+                      if (touchDragPlayerId) {
+                        handleTouchDropPlayer(col as 'attending' | 'declined');
+                      }
                     }}
                   >
                     <List dense>
@@ -352,6 +475,9 @@ export default function DashboardPage() {
                           draggable
                           className="fade-item"
                           onDragStart={(e)=> e.dataTransfer.setData('text/match-player-id', pl.id)}
+                          onTouchStart={(e)=> handleTouchStartPlayer(e, pl.id)}
+                          onTouchEnd={handleTouchEndPlayer}
+                          onTouchMove={handleTouchMovePlayer}
                           secondaryAction={<DragIndicatorIcon fontSize="small" sx={{ cursor:'grab', color:'text.disabled' }} />}
                         >
                           <ListItemText primary={pl.name} />

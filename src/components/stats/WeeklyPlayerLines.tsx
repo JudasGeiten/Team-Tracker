@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { usePlayersStore } from '../../state/usePlayersStore';
 import { Paper, Typography, Box, Autocomplete, TextField, Stack, ToggleButtonGroup, ToggleButton } from '@mui/material';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
@@ -110,6 +110,12 @@ export default function WeeklyPlayerLines() {
   }
   const visiblePlayers = selectedPlayerId ? orderedPlayers.filter(m => m.id === selectedPlayerId) : orderedPlayers;
 
+  // Hover side panel state
+  const [hoverInfo, setHoverInfo] = useState<{ week: string; rows: { name: string; value: number; color: string }[] } | null>(null);
+  const lastLabelRef = useRef<string | null>(null);
+
+  const dynamicHeight = Math.min(600, Math.max(360, visiblePlayers.length * 26));
+
   return (
     <Paper sx={{ p:2, mb:3 }}>
       <Stack direction={{ xs:'column', sm:'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs:'stretch', sm:'center' }} sx={{ mb:2 }}>
@@ -143,19 +149,55 @@ export default function WeeklyPlayerLines() {
           </ToggleButtonGroup>
         </Stack>
       </Stack>
-      <Box sx={{ width: '100%', height: 320 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="week" angle={-35} textAnchor="end" height={60} interval={0} style={{ fontSize: 11 }} />
-            <YAxis allowDecimals={false} width={40} />
-            <Tooltip formatter={(v:any,_n:any,ctx:any)=>[v, players.find(p=>p.id===_n)?.name || _n]} />
-            <Legend wrapperStyle={{ fontSize: 12, maxHeight: 60 }} />
-            {visiblePlayers.map(m => (
-              <Line key={m.id} type="monotone" dataKey={m.id} name={m.name} stroke={m.color} strokeWidth={selectedPlayerId? 3:1.5} dot={false} activeDot={{ r:5 }} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+      <Box sx={{ width: '100%', display:'flex', gap:2 }}>
+        <Box sx={{ flex:1, minWidth:0, height: dynamicHeight }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 10, right: 10, left: 0, bottom: 10 }}
+              onMouseMove={(st: any) => {
+                if (st && st.isTooltipActive && st.activeLabel && st.activePayload) {
+                  if (lastLabelRef.current === st.activeLabel && hoverInfo) return; // reduce re-renders
+                  lastLabelRef.current = st.activeLabel;
+                  const rows = st.activePayload
+                    .filter((p: any) => selectedPlayerId ? p.dataKey === selectedPlayerId : true)
+                    .map((p: any) => ({
+                      name: p.name,
+                      value: p.value,
+                      color: p.color || '#1976d2'
+                    }))
+                    .sort((a: any, b: any) => b.value - a.value);
+                  setHoverInfo({ week: st.activeLabel, rows });
+                }
+              }}
+              onMouseLeave={() => { setHoverInfo(null); lastLabelRef.current = null; }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="week" angle={-35} textAnchor="end" height={60} interval={0} style={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} width={40} />
+              {/* Hidden tooltip to enable activePayload without overlay */}
+              <Tooltip content={<span />} />
+              <Legend wrapperStyle={{ fontSize: 12, maxHeight: 60 }} />
+              {visiblePlayers.map(m => (
+                <Line key={m.id} type="monotone" dataKey={m.id} name={m.name} stroke={m.color} strokeWidth={selectedPlayerId? 3:1.5} dot={false} activeDot={{ r:4 }} />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+        <Box sx={{ width:280, flexShrink:0, display:'flex', flexDirection:'column', border:'1px solid', borderColor:'divider', borderRadius:1, p:1, bgcolor:'background.paper', height: dynamicHeight, overflow:'auto' }}>
+          <Typography variant="subtitle2" sx={{ mb:1 }}>
+            {hoverInfo ? `Uke: ${hoverInfo.week}` : 'Hold musepekeren over en uke'}
+          </Typography>
+          {hoverInfo && hoverInfo.rows.map(r => (
+            <Box key={r.name} sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', py:0.5, borderBottom:'1px dashed', borderColor:'divider' }}>
+              <Box sx={{ display:'flex', alignItems:'center', gap:1, minWidth:0 }}>
+                <span style={{ width:10, height:10, background:r.color, display:'inline-block', borderRadius:2 }} />
+                <Typography variant="caption" noWrap>{r.name}</Typography>
+              </Box>
+              <Typography variant="caption" fontWeight={600}>{r.value}</Typography>
+            </Box>
+          ))}
+        </Box>
       </Box>
       <Typography variant="caption" color="text.secondary" sx={{ mt:1, display:'block' }}>
         {selectedPlayerId ? 'Viser valgt spiller' : viewMode === 'all' ? 'Viser alle spillere' : viewMode === 'top' ? `Viser topp ${TOP_COUNT}` : `Viser bunn ${TOP_COUNT}`} · Data: {mode === 'attended' ? 'Antall oppmøtte' : 'Antall inviterte'} per uke

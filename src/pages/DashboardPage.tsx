@@ -97,18 +97,42 @@ export default function DashboardPage() {
 
   // Touch drag handlers for events
   const handleTouchStartEvent = (e: React.TouchEvent, eventId: string) => {
+    if (!e.currentTarget) return;
     (e.currentTarget as HTMLElement).style.opacity = '0.5';
     setTouchDragEventId(eventId);
   };
 
   const handleTouchEndEvent = (e: React.TouchEvent) => {
+    if (!e.currentTarget) return;
     (e.currentTarget as HTMLElement).style.opacity = '1';
+    
+    // Check what's under the touch point when released
+    if (touchDragEventId && e.changedTouches && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const dropZone = elementBelow?.closest('[data-drop-zone]');
+      
+      if (dropZone) {
+        const zone = dropZone.getAttribute('data-drop-zone') as 'training' | 'match' | 'discard' | null;
+        if (zone) {
+          if (zone === 'training') {
+            reclassifyEvent(touchDragEventId, 'training');
+          } else if (zone === 'match') {
+            reclassifyEvent(touchDragEventId, 'match');
+          } else if (zone === 'discard') {
+            discardEventById(touchDragEventId);
+          }
+        }
+      }
+    }
+    
     setTouchDragEventId(null);
     setDragTarget(null);
   };
 
   const handleTouchMoveEvent = (e: React.TouchEvent) => {
     if (!touchDragEventId) return;
+    e.preventDefault(); // Prevent scrolling while dragging
     const touch = e.touches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const dropZone = elementBelow?.closest('[data-drop-zone]');
@@ -135,17 +159,39 @@ export default function DashboardPage() {
 
   // Touch drag handlers for match players
   const handleTouchStartPlayer = (e: React.TouchEvent, playerId: string) => {
+    if (!e.currentTarget) return;
     (e.currentTarget as HTMLElement).style.opacity = '0.5';
     setTouchDragPlayerId(playerId);
   };
 
   const handleTouchEndPlayer = (e: React.TouchEvent) => {
+    if (!e.currentTarget) return;
     (e.currentTarget as HTMLElement).style.opacity = '1';
+    
+    // Check what's under the touch point when released
+    if (touchDragPlayerId && e.changedTouches && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const dropZone = elementBelow?.closest('[data-player-drop-zone]');
+      
+      if (dropZone) {
+        const status = dropZone.getAttribute('data-player-drop-zone') as 'attending' | 'declined' | null;
+        if (status) {
+          usePlayersStore.setState(state => {
+            if (!state.matchImport) return {} as any;
+            const players = state.matchImport.players.map(p => p.id === touchDragPlayerId ? { ...p, status } : p);
+            return { matchImport: { ...state.matchImport, players } };
+          });
+        }
+      }
+    }
+    
     setTouchDragPlayerId(null);
   };
 
   const handleTouchMovePlayer = (e: React.TouchEvent) => {
     if (!touchDragPlayerId) return;
+    e.preventDefault(); // Prevent scrolling while dragging
     const touch = e.touches[0];
     const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
     const dropZone = elementBelow?.closest('[data-player-drop-zone]');
@@ -298,11 +344,6 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('training')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
-                  onTouchEnd={(e)=> {
-                    if (touchDragEventId) {
-                      handleTouchDropEvent('training');
-                    }
-                  }}
                 >
                   <List dense>
                     {events.filter((e: any)=>e.type==='training').map((ev: any) => (
@@ -337,11 +378,6 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('match')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
-                  onTouchEnd={(e)=> {
-                    if (touchDragEventId) {
-                      handleTouchDropEvent('match');
-                    }
-                  }}
                 >
                   <List dense>
                     {events.filter((e: any)=>e.type==='match').map((ev: any) => (
@@ -376,11 +412,6 @@ export default function DashboardPage() {
                   }}
                   onDragEnter={()=> setDragTarget('discard')}
                   onDragLeave={(e)=> { if (e.currentTarget === e.target) setDragTarget(null); }}
-                  onTouchEnd={(e)=> {
-                    if (touchDragEventId) {
-                      handleTouchDropEvent('discard');
-                    }
-                  }}
                 >
                   <List dense>
                     {(discardedEvents || []).map((ev: any) => (
@@ -461,11 +492,6 @@ export default function DashboardPage() {
                       }
                       (e.currentTarget as HTMLElement).style.borderColor='';
                       (e.currentTarget as HTMLElement).style.backgroundColor='';
-                    }}
-                    onTouchEnd={(e)=> {
-                      if (touchDragPlayerId) {
-                        handleTouchDropPlayer(col as 'attending' | 'declined');
-                      }
                     }}
                   >
                     <List dense>

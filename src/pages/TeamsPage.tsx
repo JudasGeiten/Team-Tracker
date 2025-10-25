@@ -118,6 +118,19 @@ export default function TeamsPage() {
 
   const handleTouchEndPlayer = (e: React.TouchEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = '1';
+    
+    // Detect drop zone using elementFromPoint
+    if (touchDragPlayerId && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const dropZone = elementBelow?.closest('[data-team-drop-zone]');
+      
+      if (dropZone) {
+        const targetTeamId = dropZone.getAttribute('data-team-drop-zone') as string | 'wait';
+        movePlayer(touchDragPlayerId, targetTeamId);
+      }
+    }
+    
     setTouchDragPlayerId(null);
     setTouchDragOrigin(null);
   };
@@ -126,13 +139,6 @@ export default function TeamsPage() {
     if (!touchDragPlayerId) return;
     // Prevent scrolling while dragging
     e.preventDefault();
-  };
-
-  const handleTouchDropTeam = (targetTeamId: string | 'wait') => {
-    if (!touchDragPlayerId) return;
-    movePlayer(touchDragPlayerId, targetTeamId);
-    setTouchDragPlayerId(null);
-    setTouchDragOrigin(null);
   };
 
   return (
@@ -184,11 +190,6 @@ export default function TeamsPage() {
                   sx={{ p:1, borderColor: dragPlayerId && dragOriginTeamId !== team.id ? 'primary.light' : undefined }}
                   onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
                   onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid, team.id); }}
-                  onTouchEnd={(e)=> {
-                    if (touchDragPlayerId && editMode) {
-                      handleTouchDropTeam(team.id);
-                    }
-                  }}
                 >
                   {editMode ? (
                     <TextField
@@ -268,11 +269,6 @@ export default function TeamsPage() {
               data-team-drop-zone="wait"
               onDragOver={(e)=> { if (dragPlayerId && editMode) e.preventDefault(); }}
               onDrop={(e)=> { const pid = e.dataTransfer.getData('text/player-id'); if (pid) movePlayer(pid,'wait'); }}
-              onTouchEnd={(e)=> {
-                if (touchDragPlayerId && editMode) {
-                  handleTouchDropTeam('wait');
-                }
-              }}
             >
               <Divider sx={{ mb:1 }}>{t('teamsPage.waitList')} ({waitList.length})</Divider>
               <Stack direction="row" flexWrap="wrap" gap={1}>

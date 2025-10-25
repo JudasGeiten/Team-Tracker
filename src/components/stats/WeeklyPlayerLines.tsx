@@ -114,7 +114,10 @@ export default function WeeklyPlayerLines() {
   const [hoverInfo, setHoverInfo] = useState<{ week: string; rows: { name: string; value: number; color: string }[] } | null>(null);
   const lastLabelRef = useRef<string | null>(null);
 
-  const dynamicHeight = Math.min(600, Math.max(360, visiblePlayers.length * 26));
+  // Dynamic height: when viewing "all", expand to fit all players; otherwise cap at 600px
+  const dynamicHeight = viewMode === 'all' 
+    ? Math.max(600, visiblePlayers.length * 26) 
+    : Math.min(600, Math.max(360, visiblePlayers.length * 26));
 
   return (
     <Paper sx={{ p:2, mb:3 }}>

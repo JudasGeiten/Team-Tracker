@@ -196,7 +196,7 @@ export default function UnifiedDeviationChart({ unit }: { unit: RateUnit }) {
       {isMatch && (
         <Typography variant="caption" sx={{ mb:2, display:'block' }}>{t(`reportsPage.rateUnitLabel.${unit}`)}</Typography>
       )}
-  <ResponsiveContainer width="100%" height={Math.min(600, Math.max(160, data.length * 26))}>
+  <ResponsiveContainer width="100%" height={viewMode === 'all' ? Math.max(600, data.length * 26) : Math.min(600, Math.max(160, data.length * 26))}>
         <BarChart data={data} layout="vertical" margin={{ top: 10, right: isMatch ? 40 : 50, left: isMatch ? 140 : 160, bottom: 10 }}>
           <XAxis
             type="number"
